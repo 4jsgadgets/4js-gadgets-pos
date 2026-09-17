@@ -538,16 +538,28 @@ function saveInstallmentPayment(){
   if(amount>rem+0.005)return alert('Payment cannot be greater than the remaining balance.');
   i.payments=i.payments||[];
   i.payments.push({id:String(Date.now()+Math.random()),amount,date:$('instPayDate').value||todayISO(),method:$('instPayMethod').value,ref:$('instPayRef').value.trim(),note:$('instPayNote').value.trim()});
-  save();closeInstallmentPay();renderInstallments();toast('Installment payment saved.');showInstallmentReceipt(i, i.payments[i.payments.length-1]);
+  const savedPayment=i.payments[i.payments.length-1];
+  if(!savedPayment.receiptNo) savedPayment.receiptNo=nextInstallmentReceiptNo();
+  save();closeInstallmentPay();renderInstallments();toast('Installment payment saved.');showInstallmentReceipt(i, savedPayment);
 }
 
+
+function nextInstallmentReceiptNo(){
+  const key='4j_installment_receipt_seq';
+  let n=parseInt(localStorage.getItem(key)||'0',10);
+  if(!Number.isFinite(n)) n=0;
+  n++;
+  localStorage.setItem(key,String(n));
+  return 'IR-'+new Date().getFullYear()+'-'+String(n).padStart(6,'0');
+}
 function showInstallmentReceipt(i,p){
   let rem=instRemaining(i), paidTotal=(i.payments||[]).reduce((a,x)=>a+(+x.amount||0),0);
   let sched=installmentSchedule(i);
   let next=sched.find(x=>x.status!=='Paid');
   let nextDue=next?next.due:'Paid in Full';
+  const receiptNo=p.receiptNo||nextInstallmentReceiptNo();
   $('installmentReceiptBody').innerHTML=`<div class="receiptPaper">
-    <div class="rHead"><h2>4J's Gadgets</h2><div class="rsub">INSTALLMENT PAYMENT RECEIPT</div><div class="rsub">${esc(new Date().toLocaleString())}</div></div>
+    <div class="rHead"><h2>4J's Gadgets</h2><div class="rsub">INSTALLMENT PAYMENT RECEIPT</div><div class="rsub"><b>Receipt No.: ${esc(receiptNo)}</b></div><div class="rsub">${esc(new Date().toLocaleString())}</div></div>
     <div class="rline"><span>Customer</span><b>${esc(i.customerName)}</b></div>
     ${i.customerPhone?`<div class="rline"><span>Mobile</span><b>${esc(i.customerPhone)}</b></div>`:''}
     <div class="rline"><span>Product</span><b>${esc(i.productName)}</b></div>
