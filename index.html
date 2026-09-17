@@ -1,6 +1,12 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#050805"><title>4J's Gadgets POS</title>
 <style>
-:root{--g:#38d84b;--g2:#24a938;--bg:#050805;--panel:#0c130e;--panel2:#101912;--line:#243128;--muted:#a7b1aa;--danger:#ff5b5b}*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}button,input,select{font:inherit}button{cursor:pointer}.app{min-height:100vh}.side{position:fixed;left:0;top:0;bottom:0;width:112px;background:#030403;border-right:1px solid #172119;z-index:20;display:flex;flex-direction:column;align-items:center}.logo{width:88px;height:118px;display:flex;align-items:center;justify-content:center;padding:8px}.logo img{max-width:100%;max-height:100%;object-fit:contain;filter:none}.nav{width:100%;padding:8px 8px;overflow:auto}.nav button{width:100%;background:none;border:0;color:#dce2de;border-radius:14px;padding:12px 5px;margin:3px 0;font-weight:700;font-size:12px;line-height:1.2}.nav button.active{background:var(--g);color:#041006}.nav .ico{display:block;font-size:23px;margin-bottom:4px}.main{margin-left:112px;padding:20px;max-width:1500px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:18px}.title{font-size:34px;font-weight:900;letter-spacing:.3px}.sub{color:var(--muted)}.user{border:1px solid var(--line);background:var(--panel);padding:14px 18px;border-radius:18px;text-align:center}.page{display:none}.page.active{display:block}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}.card,.box{background:rgba(12,19,14,.94);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 8px 28px rgba(0,0,0,.18)}.label{color:#c6cec8;font-size:17px}.val{font-size:40px;font-weight:900;margin:12px 0 5px}.green{color:var(--g)}.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.toolbar>*{flex:1;min-width:120px}.grow{flex:2!important}input,select{background:#f5f6f5;color:#222;border:1px solid #c9d0cb;border-radius:10px;padding:11px 12px;min-width:0}.btn{border:1px solid #405047;background:#18231b;color:#fff;border-radius:10px;padding:10px 14px;font-weight:800}.greenbtn{background:var(--g);border-color:var(--g);color:#041006}.red{background:#351414;border-color:#713434;color:#fff}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.table th{color:#aeb8b1;background:#111a14}.tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}.ok{background:#12391a;color:#72ed83}.low{background:#493e10;color:#ffe27a}.out{background:#491717;color:#ff8e8e}.total{font-size:30px;font-weight:900;text-align:right;margin:15px 0}.cartitem{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:10px 0}.paygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.pay{border:1px solid var(--line);background:#101811;color:#fff;border-radius:10px;padding:11px;font-weight:800}.pay.active{outline:2px solid var(--g);background:#142e18}.bank-options{display:none;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#101811}.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;align-items:center;justify-content:center;padding:15px}.modal.show{display:flex}.modalbox{width:min(620px,100%);background:#0b120e;border:1px solid var(--line);border-radius:18px;padding:16px}.receipt{background:#fff;color:#111;border-radius:10px;padding:18px;font-family:Arial,sans-serif}.receipt h2,.receipt h3{margin:4px 0}.receipt .rline{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #bbb;padding:7px 0}.receipt .rtotal{font-size:22px;font-weight:900;display:flex;justify-content:space-between;margin-top:10px}.receipt-actions{display:flex;gap:8px;margin-top:10px}.receipt-actions .btn{flex:1}@media print{body *{visibility:hidden!important}#receiptModal,#receiptModal *{visibility:visible!important}#receiptModal{display:block!important;position:absolute!important;inset:0!important;background:#fff!important;padding:0!important}#receiptModal .modalbox{width:100%!important;max-width:420px!important;margin:0 auto!important;border:0!important;background:#fff!important;color:#111!important}#receiptModal .receipt-actions,#receiptModal .receipt-close{display:none!important}}.modal video{width:100%;border-radius:12px;background:#000;max-height:60vh}.toast{position:fixed;right:18px;bottom:18px;background:#152118;border:1px solid var(--g);padding:12px 16px;border-radius:12px;z-index:200;display:none}.small{font-size:12px}.dangertext{color:#ff8d8d}footer{position:fixed;left:112px;right:0;bottom:0;background:rgba(3,6,4,.94);border-top:1px solid #172119;padding:8px 14px;display:flex;justify-content:space-between;color:#89948d;font-size:12px;z-index:15}.stockForm{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.stockForm label{display:flex;flex-direction:column;gap:6px;color:#c6cec8;font-size:13px;font-weight:700}.stockHistory{display:grid;gap:10px}.stockCard{border:1px solid var(--line);background:#101811;border-radius:14px;padding:14px}.stockCardTop{display:flex;justify-content:space-between;gap:10px}.stockMeta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.stockMeta span{display:block;color:#8f9a92;font-size:11px}.stockMeta b{display:block;margin-top:3px}.stockRef{margin-top:8px;color:#a7b1aa;font-size:12px}@media(max-width:800px){.stockForm{grid-template-columns:1fr}.stockMeta{grid-template-columns:repeat(2,1fr)}}
+:root{--g:#38d84b;--g2:#24a938;--bg:#050805;--panel:#0c130e;--panel2:#101912;--line:#243128;--muted:#a7b1aa;--danger:#ff5b5b}*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}button,input,select{font:inherit}button{cursor:pointer}.app{min-height:100vh}.side{position:fixed;left:0;top:0;bottom:0;width:112px;background:#030403;border-right:1px solid #172119;z-index:20;display:flex;flex-direction:column;align-items:center}.logo{width:88px;height:118px;display:flex;align-items:center;justify-content:center;padding:8px}.logo img{max-width:100%;max-height:100%;object-fit:contain;filter:none}.nav{width:100%;padding:8px 8px;overflow:auto}.nav button{width:100%;background:none;border:0;color:#dce2de;border-radius:14px;padding:12px 5px;margin:3px 0;font-weight:700;font-size:12px;line-height:1.2}.nav button.active{background:var(--g);color:#041006}.nav .ico{display:block;font-size:23px;margin-bottom:4px}.main{margin-left:112px;padding:20px;max-width:1500px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:18px}.title{font-size:34px;font-weight:900;letter-spacing:.3px}.sub{color:var(--muted)}.user{border:1px solid var(--line);background:var(--panel);padding:14px 18px;border-radius:18px;text-align:center}.page{display:none}.page.active{display:block}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}.card,.box{background:rgba(12,19,14,.94);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 8px 28px rgba(0,0,0,.18)}.label{color:#c6cec8;font-size:17px}.val{font-size:40px;font-weight:900;margin:12px 0 5px}.green{color:var(--g)}.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.toolbar>*{flex:1;min-width:120px}.grow{flex:2!important}input,select{background:#f5f6f5;color:#222;border:1px solid #c9d0cb;border-radius:10px;padding:11px 12px;min-width:0}.btn{border:1px solid #405047;background:#18231b;color:#fff;border-radius:10px;padding:10px 14px;font-weight:800}.greenbtn{background:var(--g);border-color:var(--g);color:#041006}.red{background:#351414;border-color:#713434;color:#fff}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.table th{color:#aeb8b1;background:#111a14}.tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}.ok{background:#12391a;color:#72ed83}.low{background:#493e10;color:#ffe27a}.out{background:#491717;color:#ff8e8e}.total{font-size:30px;font-weight:900;text-align:right;margin:15px 0}.cartitem{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:10px 0}.paygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.pay{border:1px solid var(--line);background:#101811;color:#fff;border-radius:10px;padding:11px;font-weight:800}.pay.active{outline:2px solid var(--g);background:#142e18}.bank-options{display:none;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#101811}.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;align-items:center;justify-content:center;padding:15px}.modal.show{display:flex}.modalbox{width:min(620px,100%);background:#0b120e;border:1px solid var(--line);border-radius:18px;padding:16px}.receipt{background:#fff;color:#111;border-radius:10px;padding:18px;font-family:Arial,sans-serif}.receipt h2,.receipt h3{margin:4px 0}.receipt .rline{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #bbb;padding:7px 0}.receipt .rtotal{font-size:22px;font-weight:900;display:flex;justify-content:space-between;margin-top:10px}.receipt-actions{display:flex;gap:8px;margin-top:10px}.receipt-actions .btn{flex:1}@media print{body *{visibility:hidden!important}#receiptModal,#receiptModal *{visibility:visible!important}#receiptModal{display:block!important;position:absolute!important;inset:0!important;background:#fff!important;padding:0!important}#receiptModal .modalbox{width:100%!important;max-width:420px!important;margin:0 auto!important;border:0!important;background:#fff!important;color:#111!important}#receiptModal .receipt-actions,#receiptModal .receipt-close{display:none!important}}.modal video{width:100%;border-radius:12px;background:#000;max-height:60vh}.toast{position:fixed;right:18px;bottom:18px;background:#152118;border:1px solid var(--g);padding:12px 16px;border-radius:12px;z-index:200;display:none}.small{font-size:12px}.dangertext{color:#ff8d8d}footer{position:fixed;left:112px;right:0;bottom:0;background:rgba(3,6,4,.94);border-top:1px solid #172119;padding:8px 14px;display:flex;justify-content:space-between;color:#89948d;font-size:12px;z-index:15}.stockForm{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.stockProductDetails{margin-top:12px;border:1px solid var(--line);background:#0f1711;border-radius:14px;padding:14px}
+.stockProductDetailsHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.stockProductDetailsGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stockDetail{border:1px solid #26352b;background:#111a14;border-radius:10px;padding:9px}
+.stockDetail span{display:block;color:#8f9a92;font-size:11px}
+.stockDetail b{display:block;margin-top:3px;font-size:14px}
+@media(max-width:800px){.stockProductDetailsGrid{grid-template-columns:repeat(2,1fr)}}.stockForm label{display:flex;flex-direction:column;gap:6px;color:#c6cec8;font-size:13px;font-weight:700}.stockHistory{display:grid;gap:10px}.stockCard{border:1px solid var(--line);background:#101811;border-radius:14px;padding:14px}.stockCardTop{display:flex;justify-content:space-between;gap:10px}.stockMeta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.stockMeta span{display:block;color:#8f9a92;font-size:11px}.stockMeta b{display:block;margin-top:3px}.stockRef{margin-top:8px;color:#a7b1aa;font-size:12px}@media(max-width:800px){.stockForm{grid-template-columns:1fr}.stockMeta{grid-template-columns:repeat(2,1fr)}}
 
 /* 4J'S GADGETS ORIGINAL LOGO WATERMARK */
 .main{position:relative;isolation:isolate;}
@@ -10,6 +16,29 @@
 @media(max-width:520px){.main::before{left:72px;background-size:min(620px,96vw);background-position:center 48%;opacity:.14;}}
 @media(max-width:800px){.side{width:72px}.logo{width:64px;height:82px}.nav button{font-size:0;padding:10px 2px}.nav .ico{font-size:24px;margin:0}.main{margin-left:72px;padding:12px 10px 65px}.title{font-size:24px}.top{align-items:center}.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.box{padding:14px}.paygrid{grid-template-columns:repeat(2,1fr)}footer{left:72px;font-size:10px}.footer-hide{display:none}}
 @media(max-width:520px){.cards{grid-template-columns:1fr}.title{font-size:21px}.user{padding:9px 10px}.toolbar>*{min-width:100%}.nav button{margin:2px 0}.logo{padding:4px}.card .val{font-size:34px}}
+
+<style>
+.stockScanWrap{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(260px,.7fr);gap:12px;margin-top:14px}
+.stockScanner{border:1px solid var(--g2);background:#0d1710;border-radius:16px;padding:14px}
+.stockScannerHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.stockScannerTitle{font-size:18px;font-weight:900}
+.scannerReady{color:var(--g);font-weight:800;font-size:12px}
+.stockScanBar{display:flex;gap:8px}
+.stockScanBar input{flex:1}
+.stockScanBar .btn{min-width:130px}
+.stockScanHint{margin-top:8px;padding:9px 11px;border-radius:9px;background:#102017;color:#aeb8b1;font-size:12px}
+.recentScans{border:1px solid var(--line);background:#0e1611;border-radius:16px;padding:14px}
+.recentScans h3{margin:0 0 10px;font-size:17px}
+.recentScanList{display:grid;gap:8px;max-height:280px;overflow:auto}
+.recentScan{border:1px solid var(--line);background:#101811;border-radius:11px;padding:10px}
+.recentScanCode{font-weight:900;word-break:break-all}
+.recentScanMeta{font-size:11px;color:#8f9a92;margin-top:3px}
+.stockScanStatus{margin-top:9px;min-height:18px}
+@media(max-width:800px){
+  .stockScanWrap{grid-template-columns:1fr}
+  .recentScanList{max-height:220px}
+}
+</style>
 </style><style>
 .saleHistory{display:grid;gap:12px}.saleCard{border:1px solid var(--line);background:#0e1611;border-radius:14px;padding:14px}.saleTop{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.saleStatus{padding:5px 9px;border-radius:999px;font-size:11px;font-weight:900}.saleStatus.completed{background:#12391a;color:#72ed83}.saleStatus.voided{background:#491717;color:#ff8e8e}.saleGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.saleGrid div{border:1px solid var(--line);border-radius:10px;padding:9px}.saleGrid span{display:block;color:#8f9b94;font-size:11px;margin-bottom:3px}.saleGrid b{font-size:14px}.bankline{margin:4px 0 10px}.voidBtn{width:100%;margin-top:10px;background:#491717!important;border-color:#a84b4b!important;color:#fff!important}@media(max-width:600px){.saleGrid{grid-template-columns:1fr 1fr}.saleGrid div:last-child{grid-column:1/-1}.saleCard{padding:12px}.saleTop b{font-size:14px}}
 </style>
@@ -21,7 +50,54 @@
 <section id="sale" class="page"><div class="grid"><div class="box"><h2>🛒 New Sale</h2><div class="toolbar"><input id="saleCode" class="grow" placeholder="SKU / Barcode / IMEI / Model" onkeydown="if(event.key==='Enter')addByCode('saleCode')"><button class="btn greenbtn" onclick="addByCode('saleCode')">＋ Add</button><button class="btn" onclick="scanCamera('sale')">▣ Scan</button></div><div id="saleProducts"></div></div><div class="box"><h2>Cart / Checkout <button class="btn" style="float:right" onclick="clearCart()">Clear</button></h2><div id="cart"></div><div class="total" id="total">₱0.00</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div><label class="sub small">Discount</label><input id="discount" type="number" min="0" value="0" placeholder="₱0.00" oninput="renderCart()"></div><div><label class="sub small">Cash Received</label><input id="cashReceived" type="number" min="0" value="0" placeholder="₱0.00" oninput="renderCart()"></div></div><div id="changeDue" class="sub" style="margin-top:6px;text-align:right">Change: ₱0.00</div><div class="paygrid" style="margin-top:10px"><button class="pay active" onclick="pay(this,'Cash')">💵 Cash</button><button class="pay" onclick="pay(this,'GCash')">🔵 GCash</button><button class="pay" onclick="pay(this,'Maya')">🟢 Maya</button><button class="pay" onclick="pay(this,'Card')">💳 Card</button><button class="pay" onclick="pay(this,'Bank Transfer')">🏦 Bank Transfer</button><button class="pay" onclick="pay(this,'Installment')">▤ Installment</button></div><div id="bankOptions" class="bank-options"><input id="bankName" placeholder="Bank name (BDO, Metrobank, BPI...)" style="width:100%;margin-bottom:7px"><input id="bankReference" placeholder="Bank Transfer Reference Number" style="width:100%"></div><button class="btn greenbtn" style="width:100%;margin-top:10px;padding:14px" onclick="checkout()">▣ Complete Sale</button></div></div></section>
 <section id="products" class="page"><div class="box"><h2>📦 Product Master</h2><div class="sub">Add and manage phones, accessories, tablets and gadgets.</div><div class="toolbar"><input id="sku" placeholder="SKU / Barcode *"><input id="brand" placeholder="Brand *"><input id="model" placeholder="Model *"><input id="variant" placeholder="Storage / RAM / Color"><input id="imei" placeholder="IMEI / Serial (optional)"></div><div class="toolbar"><select id="category"><option>Cellphone</option><option>Tablet</option><option>Accessory</option><option>Gadget</option><option>Other</option></select><input id="supplier" placeholder="Supplier"><input id="cost" type="number" min="0" step="0.01" placeholder="Cost Price *"><input id="price" type="number" min="0" step="0.01" placeholder="Selling Price *"><input id="qty" type="number" min="0" value="1" placeholder="Opening Stock"><input id="minStock" type="number" min="0" value="2" placeholder="Low Stock Alert"></div><div class="toolbar"><label style="display:flex;align-items:center;gap:8px"><input id="serialTracked" type="checkbox" style="width:18px;height:18px"> Track IMEI / Serial</label><button class="btn greenbtn" onclick="saveProduct()">＋ Save Product</button><button class="btn" onclick="clearProductForm()">Clear</button></div><input type="hidden" id="editId"></div><div class="box" style="margin-top:14px"><div class="toolbar"><input id="prodSearch" class="grow" placeholder="Search products..." oninput="renderMaster()"><select id="prodCategory" onchange="renderMaster()"><option value="">All Categories</option><option>Cellphone</option><option>Tablet</option><option>Accessory</option><option>Gadget</option><option>Other</option></select></div><div id="master"></div></div></section>
 <section id="inventory" class="page"><div class="box"><h2>📊 Inventory</h2><div class="toolbar"><input id="invSearch" class="grow" placeholder="Search inventory..." oninput="renderInventory()"><select id="invFilter" onchange="renderInventory()"><option value="">All Status</option><option value="ok">In Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div><div id="inventoryList"></div></div></section>
-<section id="stockin" class="page"><div class="box"><h2>＋ Stock In</h2><div class="sub">Record incoming inventory, supplier, cost, and stock-in history.</div><div class="stockForm"><label>Product / SKU / Barcode / IMEI<select id="stockProduct"><option value="">Select product...</option></select></label><label>Supplier<input id="stockSupplier" placeholder="Supplier name"></label><label>Purchase Date<input id="stockDate" type="date"></label><label>Quantity<input id="stockQty" type="number" min="1" value="1"></label><label>Cost Per Unit<input id="stockCost" type="number" min="0" step="0.01" placeholder="0.00"></label><label>Reference / Invoice No.<input id="stockRef" placeholder="Optional invoice/reference"></label></div><div class="toolbar"><button class="btn greenbtn" onclick="stockIn()">＋ Receive Stock</button><button class="btn" onclick="clearStockForm()">Clear</button></div><div id="stockInfo"></div></div><div class="box"><h2>Stock-In History</h2><div id="stockHistory"></div></div></section>
+<section id="stockin" class="page">
+<div class="box">
+  <h2>＋ Stock In</h2>
+  <div class="sub">Record incoming inventory, supplier, cost, and stock-in history.</div>
+
+  <div class="stockScanWrap">
+    <div class="stockScanner">
+      <div class="stockScannerHead">
+        <div>
+          <div class="stockScannerTitle">▣ Scan Barcode / QR / IMEI</div>
+          <div class="sub small">Scan to automatically find and select the product.</div>
+        </div>
+        <span class="scannerReady">● Scanner Ready</span>
+      </div>
+      <div class="stockScanBar">
+        <input id="stockScanCode" placeholder="Scan barcode / QR code / IMEI..." onkeydown="if(event.key==='Enter')processStockScan(this.value)">
+        <button class="btn greenbtn" onclick="scanCamera('stockin')">📷 Camera</button>
+      </div>
+      <div class="stockScanHint">Supports 1D/2D barcode, QR code and IMEI. USB/Bluetooth scanners can also type directly into this field.</div>
+      <div id="stockScanStatus" class="stockScanStatus sub"></div>
+    </div>
+
+    <div class="recentScans">
+      <h3>↻ Recent Scans</h3>
+      <div id="recentStockScans" class="recentScanList"></div>
+      <button class="btn" style="width:100%;margin-top:9px" onclick="clearRecentStockScans()">🗑 Clear Scan History</button>
+    </div>
+  </div>
+
+  <div class="stockForm">
+    <label>Product / SKU / Barcode / IMEI
+      <select id="stockProduct" onchange="stockProductChanged()"><option value="">Select product...</option></select>
+    </label>
+    <label>Supplier<input id="stockSupplier" placeholder="Supplier name"></label>
+    <label>Purchase Date<input id="stockDate" type="date"></label>
+    <label>Quantity<input id="stockQty" type="number" min="1" value="1"></label>
+    <label>Cost Per Unit<input id="stockCost" type="number" min="0" step="0.01" placeholder="0.00"></label>
+    <label>Reference / Invoice No.<input id="stockRef" placeholder="Optional invoice/reference"></label>
+  </div>
+  <div id="stockProductDetails" class="stockProductDetails" style="display:none"></div>
+  <div class="toolbar">
+    <button class="btn greenbtn" onclick="stockIn()">＋ Receive Stock</button>
+    <button class="btn" onclick="clearStockForm()">Clear</button>
+  </div>
+  <div id="stockInfo"></div>
+</div>
+<div class="box"><h2>Stock-In History</h2><div id="stockHistory"></div></div>
+</section>
 <section id="customers" class="page"><div class="box"><h2>♟ Customers</h2><div class="sub">Customer records will be connected to sales and installment accounts in the next module.</div></div></section><section id="installment" class="page"><div class="box"><h2>▤ Installment</h2><div class="sub">Installment module placeholder — customer, financing partner, downpayment and monthly schedule will be added next.</div></div></section>
 <section id="reports" class="page"><div class="box"><h2>▥ Reports</h2><div class="toolbar"><button class="btn greenbtn" onclick="exportCSV()">Export Sales CSV</button><button class="btn" onclick="printReport()">Print Report</button></div><div id="reportsList"></div></div></section>
 <section id="settings" class="page"><div class="box"><h2>⚙ Settings & Backup</h2><div class="sub">Data is stored locally in this browser/device.</div><div class="toolbar"><button class="btn greenbtn" onclick="exportBackup()">Export Backup</button><button class="btn" onclick="document.getElementById('restoreFile').click()">Restore Backup</button><button class="btn red" onclick="resetData()">Reset Local Data</button><input id="restoreFile" type="file" accept=".json" style="display:none" onchange="restoreBackup(event)"></div></div></section>
@@ -44,9 +120,107 @@ function statusTag(p){let s=status(p);return `<span class="tag ${s}">${s==='out'
 function renderMaster(){let q=($('prodSearch')?.value||'').toLowerCase(),c=$('prodCategory')?.value||'';let arr=products.filter(p=>(!q||[p.sku,p.brand,p.model,p.variant,p.imei,p.supplier].join(' ').toLowerCase().includes(q))&&(!c||p.category===c));$('master').innerHTML=arr.length?`<div class="tablewrap"><table class="table"><tr><th>SKU</th><th>Product</th><th>IMEI/Serial</th><th>Cost</th><th>Price</th><th>Stock</th><th>Status</th><th>Action</th></tr>${arr.map(p=>`<tr><td><b>${esc(p.sku)}</b></td><td>${esc(p.brand)} ${esc(p.model)}<br><span class="sub small">${esc(p.variant)} • ${esc(p.category)}</span></td><td>${esc(p.imei||'-')}</td><td>${money(p.cost)}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${statusTag(p)}</td><td><button class="btn" onclick="editProduct('${p.id}')">Edit</button> <button class="btn red" onclick="deleteProduct('${p.id}')">Delete</button></td></tr>`).join('')}</table></div>`:'<p class="sub">No products yet.</p>'}
 function renderInventory(){let q=($('invSearch')?.value||'').toLowerCase(),f=$('invFilter')?.value||'';let arr=products.filter(p=>(!q||[p.sku,p.brand,p.model,p.variant,p.imei].join(' ').toLowerCase().includes(q))&&(!f||status(p)===f));$('inventoryList').innerHTML=arr.length?`<div class="tablewrap"><table class="table"><tr><th>SKU</th><th>Product</th><th>Stock</th><th>Min</th><th>Cost Value</th><th>Selling Value</th><th>Status</th><th>Quick Stock</th></tr>${arr.map(p=>`<tr><td>${esc(p.sku)}</td><td>${esc(p.brand)} ${esc(p.model)}<br><span class="sub small">${esc(p.variant)}</span></td><td><b>${p.stock}</b></td><td>${p.min}</td><td>${money(p.cost*p.stock)}</td><td>${money(p.price*p.stock)}</td><td>${statusTag(p)}</td><td><button class="btn" onclick="adjustStock('${p.id}',-1)">−</button> <button class="btn greenbtn" onclick="adjustStock('${p.id}',1)">＋</button></td></tr>`).join('')}</table></div>`:'<p class="sub">No inventory records.</p>'}
 function adjustStock(id,d){let p=products.find(x=>String(x.id)===String(id));if(!p)return;p.stock=Math.max(0,p.stock+d);save();renderAll()}
-function initStockIn(){let d=new Date();$('stockDate').value=d.toISOString().slice(0,10);let opts=products.map(p=>`<option value="${esc(String(p.id))}">${esc(p.brand+' '+p.model+(p.variant?' '+p.variant:''))} • ${esc(p.sku)} • Stock ${p.stock}</option>`).join('');$('stockProduct').innerHTML='<option value="">Select product...</option>'+opts;renderStockHistory()}
-function clearStockForm(){let d=new Date();$('stockProduct').value='';$('stockSupplier').value='';$('stockDate').value=d.toISOString().slice(0,10);$('stockQty').value=1;$('stockCost').value='';$('stockRef').value='';$('stockInfo').innerHTML=''}
-function stockIn(){let pid=$('stockProduct').value,q=Math.floor(+$('stockQty').value||0),supplier=$('stockSupplier').value.trim(),date=$('stockDate').value||new Date().toISOString().slice(0,10),costVal=$('stockCost').value===''?null:Math.max(0,+$('stockCost').value||0),ref=$('stockRef').value.trim(),p=products.find(x=>String(x.id)===String(pid));if(!p||q<1)return alert('Select a product and enter a valid quantity.');p.stock+=q;if(costVal!==null)p.cost=costVal;if(supplier)p.supplier=supplier;let entry={id:Date.now(),date,supplier,productId:p.id,sku:p.sku,product:p.brand+' '+p.model+(p.variant?' '+p.variant:''),qty:q,cost:costVal!==null?costVal:p.cost,total:(costVal!==null?costVal:p.cost)*q,reference:ref};let stockins=JSON.parse(localStorage.getItem('4j_stockins')||'[]');stockins.push(entry);localStorage.setItem('4j_stockins',JSON.stringify(stockins));save();$('stockInfo').innerHTML=`<p class="green">Received ${q} unit(s) of ${esc(entry.product)}. New stock: ${p.stock}. Total cost: ${money(entry.total)}</p>`;clearStockForm();renderAll();renderStockHistory()}
+function initStockIn(){let d=new Date();$('stockDate').value=d.toISOString().slice(0,10);let opts=products.map(p=>`<option value="${esc(String(p.id))}">${esc(p.brand+' '+p.model+(p.variant?' '+p.variant:''))} • ${esc(p.sku)} • Stock ${p.stock}</option>`).join('');$('stockProduct').innerHTML='<option value="">Select product...</option>'+opts;renderStockHistory();renderRecentStockScans()}
+function clearStockForm(){let d=new Date();$('stockProduct').value='';$('stockSupplier').value='';$('stockDate').value=d.toISOString().slice(0,10);$('stockQty').value=1;$('stockCost').value='';$('stockRef').value='';$('stockInfo').innerHTML='';if($('stockScanCode'))$('stockScanCode').value='';if($('stockScanStatus'))$('stockScanStatus').textContent='';renderStockProductDetails(null)}
+
+function parseStockVariant(p){
+  let raw=String(p.variant||'').trim();
+  let storage=p.storage||p.storageCapacity||'';
+  let ram=p.ram||p.ramSize||'';
+  let color=p.color||p.colour||'';
+
+  let m=raw.match(/(?:storage|rom|memory)\s*[:\-]?\s*(\d+(?:\.\d+)?\s*(?:TB|GB|MB))/i);
+  if(m&&!storage)storage=m[1];
+  m=raw.match(/(?:ram)\s*[:\-]?\s*(\d+(?:\.\d+)?\s*(?:TB|GB|MB))/i);
+  if(m&&!ram)ram=m[1];
+  m=raw.match(/(?:color|colour)\s*[:\-]?\s*([^|,\/•]+)/i);
+  if(m&&!color)color=m[1].trim();
+
+  if(!storage||!ram||!color){
+    let parts=raw.split(/\s*(?:\/|\||•|,)\s*/).map(x=>x.trim()).filter(Boolean);
+    let memParts=parts.filter(x=>/\d+(?:\.\d+)?\s*(?:TB|GB|MB)\b/i.test(x));
+    if(!storage && memParts.length)storage=memParts[0];
+    if(!ram && memParts.length>1)ram=memParts[1];
+    if(!color){
+      let nonMem=parts.filter(x=>!/\d+(?:\.\d+)?\s*(?:TB|GB|MB)\b/i.test(x));
+      if(nonMem.length)color=nonMem.join(' / ');
+    }
+  }
+
+  return {
+    storage:String(storage||'').trim()||'-',
+    ram:String(ram||'').trim()||'-',
+    color:String(color||'').trim()||'-'
+  };
+}
+
+function renderStockProductDetails(p){
+  let el=$('stockProductDetails');
+  if(!el)return;
+  if(!p){el.style.display='none';el.innerHTML='';return;}
+  let d=parseStockVariant(p);
+  el.style.display='block';
+  el.innerHTML=`<div class="stockProductDetailsHead">
+    <div><b>✓ Product Details Found</b><div class="sub small">Automatically loaded from the scanned IMEI / barcode.</div></div>
+    <span class="tag ok">PRICE NOT AUTO-FILLED</span>
+  </div>
+  <div class="stockProductDetailsGrid">
+    <div class="stockDetail"><span>Brand</span><b>${esc(p.brand||'-')}</b></div>
+    <div class="stockDetail"><span>Model</span><b>${esc(p.model||'-')}</b></div>
+    <div class="stockDetail"><span>Storage / GB</span><b>${esc(d.storage)}</b></div>
+    <div class="stockDetail"><span>RAM</span><b>${esc(d.ram)}</b></div>
+    <div class="stockDetail"><span>Color</span><b>${esc(d.color)}</b></div>
+    <div class="stockDetail"><span>SKU / Barcode</span><b>${esc(p.sku||'-')}</b></div>
+    <div class="stockDetail"><span>IMEI / Serial</span><b>${esc(p.imei||'-')}</b></div>
+    <div class="stockDetail"><span>Supplier</span><b>${esc(p.supplier||'-')}</b></div>
+  </div>`;
+}
+
+function stockProductChanged(){
+  let p=products.find(x=>String(x.id)===String($('stockProduct').value));
+  if(!p){renderStockProductDetails(null);return;}
+  if(!$('stockSupplier').value.trim() && p.supplier)$('stockSupplier').value=p.supplier;
+  // Keep Cost Per Unit / unit price manual; it is intentionally NOT auto-filled.
+  renderStockProductDetails(p);
+}
+function findStockProductByCode(code){
+  let c=String(code||'').trim().toLowerCase();
+  if(!c)return null;
+  return products.find(p=>[
+    p.sku,p.imei,p.barcode,p.model,p.variant,
+    [p.brand,p.model,p.variant].filter(Boolean).join(' ')
+  ].some(v=>String(v||'').trim().toLowerCase()===c))||null;
+}
+function addRecentStockScan(code,p){
+  let arr=JSON.parse(localStorage.getItem('4j_stock_scan_history')||'[]');
+  arr.unshift({code:String(code),productId:p?p.id:null,product:p?(p.brand+' '+p.model+(p.variant?' '+p.variant:'')):'Product not found',time:new Date().toISOString()});
+  arr=arr.slice(0,20);
+  localStorage.setItem('4j_stock_scan_history',JSON.stringify(arr));
+  renderRecentStockScans();
+}
+function renderRecentStockScans(){
+  let el=$('recentStockScans'); if(!el)return;
+  let arr=JSON.parse(localStorage.getItem('4j_stock_scan_history')||'[]');
+  el.innerHTML=arr.length?arr.map(e=>`<div class="recentScan"><div class="recentScanCode">${esc(e.code)}</div><div class="recentScanMeta">${esc(e.product||'')} • ${new Date(e.time).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'})}</div></div>`).join(''):'<div class="sub small">No scans yet.</div>';
+}
+function clearRecentStockScans(){localStorage.removeItem('4j_stock_scan_history');renderRecentStockScans()}
+function processStockScan(code){
+  code=String(code||'').trim();
+  if(!code)return;
+  let p=findStockProductByCode(code);
+  addRecentStockScan(code,p);
+  if(p){
+    $('stockProduct').value=String(p.id);
+    stockProductChanged();
+    $('stockScanStatus').innerHTML=`<span class="green">✓ Found:</span> ${esc(p.brand+' '+p.model+(p.variant?' '+p.variant:''))}`;
+    renderStockProductDetails(p);
+    $('stockQty').focus();
+  }else{
+    $('stockScanStatus').innerHTML=`<span class="dangertext">Product not found.</span> Add the product first or check the scanned code.`;
+  }
+}
+
+function stockIn(){let pid=$('stockProduct').value,q=Math.floor(+$('stockQty').value||0),supplier=$('stockSupplier').value.trim(),date=$('stockDate').value||new Date().toISOString().slice(0,10),costVal=$('stockCost').value===''?null:Math.max(0,+$('stockCost').value||0),ref=$('stockRef').value.trim(),p=products.find(x=>String(x.id)===String(pid));if(!p||q<1)return alert('Select a product and enter a valid quantity.');p.stock+=q;if(costVal!==null)p.cost=costVal;if(supplier)p.supplier=supplier;let entry={id:Date.now(),date,supplier,productId:p.id,sku:p.sku,product:p.brand+' '+p.model+(p.variant?' '+p.variant:''),qty:q,cost:costVal!==null?costVal:p.cost,total:(costVal!==null?costVal:p.cost)*q,reference:ref};let stockins=JSON.parse(localStorage.getItem('4j_stockins')||'[]');stockins.push(entry);localStorage.setItem('4j_stockins',JSON.stringify(stockins));save();$('stockInfo').innerHTML=`<p class="green">Received ${q} unit(s) of ${esc(entry.product)}. New stock: ${p.stock}. Total cost: ${money(entry.total)}</p>`;clearStockForm();renderAll();renderStockHistory();renderRecentStockScans()}
 function renderStockHistory(){let el=$('stockHistory');if(!el)return;let arr=JSON.parse(localStorage.getItem('4j_stockins')||'[]').slice().reverse();el.innerHTML=arr.length?'<div class="stockHistory">'+arr.map(e=>`<div class="stockCard"><div class="stockCardTop"><div><b>${esc(e.product)}</b><div class="sub small">${esc(e.sku)} • ${esc(e.date)}</div></div><span class="tag ok">RECEIVED</span></div><div class="stockMeta"><div><span>Supplier</span><b>${esc(e.supplier||'-')}</b></div><div><span>Quantity</span><b>${e.qty}</b></div><div><span>Cost / Unit</span><b>${money(e.cost)}</b></div><div><span>Total Cost</span><b>${money(e.total)}</b></div></div>${e.reference?`<div class="stockRef">Reference: ${esc(e.reference)}</div>`:''}</div>`).join('')+'</div>':'<p class="sub">No stock-in records yet.</p>'}
 function findProduct(code){let c=String(code||'').trim().toLowerCase();return products.find(p=>[p.sku,p.imei,p.model].some(v=>String(v||'').toLowerCase()===c))||products.find(p=>[p.sku,p.imei,p.model,p.brand].some(v=>String(v||'').toLowerCase().includes(c)))}
 function addByCode(id){let code=$(id).value.trim();if(!code)return;let p=findProduct(code);if(!p)return alert('Product not found. Add it in Product Master first.');add(p);$(id).value='';renderAll()}
@@ -90,6 +264,9 @@ async function scanCamera(target){
       closeCamera();
       if(scanTarget==='dash'){
         if($('dashSearch')){$('dashSearch').value=code;renderDashboardProducts();}
+      }else if(scanTarget==='stockin'){
+        if($('stockScanCode'))$('stockScanCode').value=code;
+        processStockScan(code);
       }else{
         if($('saleCode')){$('saleCode').value=code;addByCode('saleCode');}
       }
