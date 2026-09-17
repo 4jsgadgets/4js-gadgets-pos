@@ -65,7 +65,7 @@
         <span class="scannerReady">● Scanner Ready</span>
       </div>
       <div class="stockScanBar">
-        <input id="stockScanCode" placeholder="Scan barcode / QR code / IMEI..." onkeydown="if(event.key==='Enter')processStockScan(this.value)">
+        <input id="stockScanCode" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Scan barcode / QR code / IMEI..." onkeydown="if(event.key==='Enter')processStockScan(this.value)">
         <button class="btn greenbtn" onclick="scanCamera('stockin')">📷 Camera</button>
       </div>
       <div class="stockScanHint">Supports 1D/2D barcode, QR code and IMEI. USB/Bluetooth scanners can also type directly into this field.</div>
@@ -157,22 +157,20 @@ function parseStockVariant(p){
 function renderStockProductDetails(p){
   let el=$('stockProductDetails');
   if(!el)return;
-  if(!p){el.style.display='none';el.innerHTML='';return;}
-  let d=parseStockVariant(p);
+  if(!p){
+    el.style.display='none';
+    el.innerHTML='';
+    return;
+  }
+  let imei=String(p.imei||'').trim();
+  let productName=[p.brand,p.model,p.variant].filter(Boolean).join(' ').trim() || p.model || p.sku || 'Product';
   el.style.display='block';
   el.innerHTML=`<div class="stockProductDetailsHead">
-    <div><b>✓ Product Details Found</b><div class="sub small">Automatically loaded from the scanned IMEI / barcode.</div></div>
-    <span class="tag ok">PRICE NOT AUTO-FILLED</span>
+    <div><b>✓ Product Found</b><div class="sub small">IMEI matched with Product Master.</div></div>
   </div>
   <div class="stockProductDetailsGrid">
-    <div class="stockDetail"><span>Brand</span><b>${esc(p.brand||'-')}</b></div>
-    <div class="stockDetail"><span>Model</span><b>${esc(p.model||'-')}</b></div>
-    <div class="stockDetail"><span>Storage / GB</span><b>${esc(d.storage)}</b></div>
-    <div class="stockDetail"><span>RAM</span><b>${esc(d.ram)}</b></div>
-    <div class="stockDetail"><span>Color</span><b>${esc(d.color)}</b></div>
-    <div class="stockDetail"><span>SKU / Barcode</span><b>${esc(p.sku||'-')}</b></div>
-    <div class="stockDetail"><span>IMEI / Serial</span><b>${esc(p.imei||'-')}</b></div>
-    <div class="stockDetail"><span>Supplier</span><b>${esc(p.supplier||'-')}</b></div>
+    <div class="stockDetail"><span>IMEI Number</span><b>${esc(imei||'Scanned IMEI')}</b></div>
+    <div class="stockDetail"><span>Product Name</span><b>${esc(productName)}</b></div>
   </div>`;
 }
 
@@ -183,13 +181,41 @@ function stockProductChanged(){
   // Keep Cost Per Unit / unit price manual; it is intentionally NOT auto-filled.
   renderStockProductDetails(p);
 }
+function normalizeScanCode(v){
+  return String(v||'').trim().toLowerCase().replace(/[\s\-().]/g,'');
+}
+function scanDigits(v){
+  return String(v||'').replace(/\D/g,'');
+}
 function findStockProductByCode(code){
-  let c=String(code||'').trim().toLowerCase();
+  let raw=String(code||'').trim();
+  let c=normalizeScanCode(raw);
   if(!c)return null;
-  return products.find(p=>[
-    p.sku,p.imei,p.barcode,p.model,p.variant,
-    [p.brand,p.model,p.variant].filter(Boolean).join(' ')
-  ].some(v=>String(v||'').trim().toLowerCase()===c))||null;
+  let digits=scanDigits(raw);
+
+  return products.find(p=>{
+    let values=[
+      p.sku,p.imei,p.barcode,p.model,p.variant,
+      [p.brand,p.model,p.variant].filter(Boolean).join(' ')
+    ];
+
+    return values.some(v=>{
+      let n=normalizeScanCode(v);
+      if(n===c)return true;
+
+      // IMEI/serial matching: accept spaces, hyphens, and other scanner formatting.
+      let vd=scanDigits(v);
+      if(digits && vd && digits.length>=10 && vd===digits)return true;
+
+      // Some 1D/GS1 scanners include extra application-identifiers.
+      // If a 15-digit IMEI is present, match that exact 15-digit sequence.
+      if(digits.length>=15 && vd.length>=15){
+        let imei15=digits.slice(-15);
+        if(vd.slice(-15)===imei15)return true;
+      }
+      return false;
+    });
+  })||null;
 }
 function addRecentStockScan(code,p){
   let arr=JSON.parse(localStorage.getItem('4j_stock_scan_history')||'[]');
@@ -216,7 +242,7 @@ function processStockScan(code){
     renderStockProductDetails(p);
     $('stockQty').focus();
   }else{
-    $('stockScanStatus').innerHTML=`<span class="dangertext">Product not found.</span> Add the product first or check the scanned code.`;
+    $('stockScanStatus').innerHTML=`<span class="dangertext">Product not found.</span> Check that the IMEI/Barcode is saved in Product Master. Spaces and scanner formatting are ignored.`;
   }
 }
 
