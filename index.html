@@ -1,6 +1,13 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#050805"><title>4J's Gadgets POS</title>
 <style>
-:root{--g:#38d84b;--g2:#24a938;--bg:#050805;--panel:#0c130e;--panel2:#101912;--line:#243128;--muted:#a7b1aa;--danger:#ff5b5b}*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}button,input,select{font:inherit}button{cursor:pointer}.app{min-height:100vh}.side{position:fixed;left:0;top:0;bottom:0;width:112px;background:#030403;border-right:1px solid #172119;z-index:20;display:flex;flex-direction:column;align-items:center}.logo{width:88px;height:118px;display:flex;align-items:center;justify-content:center;padding:8px}.logo img{max-width:100%;max-height:100%;object-fit:contain;filter:none}.nav{width:100%;padding:8px 8px;overflow:auto}.nav button{width:100%;background:none;border:0;color:#dce2de;border-radius:14px;padding:12px 5px;margin:3px 0;font-weight:700;font-size:12px;line-height:1.2}.nav button.active{background:var(--g);color:#041006}.nav .ico{display:block;font-size:23px;margin-bottom:4px}.main{margin-left:112px;padding:20px;max-width:1500px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:18px}.title{font-size:34px;font-weight:900;letter-spacing:.3px}.sub{color:var(--muted)}.user{border:1px solid var(--line);background:var(--panel);padding:14px 18px;border-radius:18px;text-align:center}.page{display:none}.page.active{display:block}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}.card,.box{background:rgba(12,19,14,.94);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 8px 28px rgba(0,0,0,.18)}.label{color:#c6cec8;font-size:17px}.val{font-size:40px;font-weight:900;margin:12px 0 5px}.green{color:var(--g)}.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.toolbar>*{flex:1;min-width:120px}.grow{flex:2!important}input,select{background:#f5f6f5;color:#222;border:1px solid #c9d0cb;border-radius:10px;padding:11px 12px;min-width:0}.btn{border:1px solid #405047;background:#18231b;color:#fff;border-radius:10px;padding:10px 14px;font-weight:800}.greenbtn{background:var(--g);border-color:var(--g);color:#041006}.red{background:#351414;border-color:#713434;color:#fff}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.table th{color:#aeb8b1;background:#111a14}.tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}.ok{background:#12391a;color:#72ed83}.low{background:#493e10;color:#ffe27a}.out{background:#491717;color:#ff8e8e}.total{font-size:30px;font-weight:900;text-align:right;margin:15px 0}.cartitem{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:10px 0}.paygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.pay{border:1px solid var(--line);background:#101811;color:#fff;border-radius:10px;padding:11px;font-weight:800}.pay.active{outline:2px solid var(--g);background:#142e18}.bank-options{display:none;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#101811}.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;align-items:center;justify-content:center;padding:15px}.modal.show{display:flex}.modalbox{width:min(620px,100%);background:#0b120e;border:1px solid var(--line);border-radius:18px;padding:16px}.receipt{background:#fff;color:#111;border-radius:10px;padding:18px;font-family:Arial,sans-serif}.receipt h2,.receipt h3{margin:4px 0}.receipt .rline{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #bbb;padding:7px 0}.receipt .rtotal{font-size:22px;font-weight:900;display:flex;justify-content:space-between;margin-top:10px}.receipt-actions{display:flex;gap:8px;margin-top:10px}.receipt-actions .btn{flex:1}@media print{body *{visibility:hidden!important}#receiptModal,#receiptModal *{visibility:visible!important}#receiptModal{display:block!important;position:absolute!important;inset:0!important;background:#fff!important;padding:0!important}#receiptModal .modalbox{width:100%!important;max-width:420px!important;margin:0 auto!important;border:0!important;background:#fff!important;color:#111!important}#receiptModal .receipt-actions,#receiptModal .receipt-close{display:none!important}}.modal video{width:100%;border-radius:12px;background:#000;max-height:60vh}.toast{position:fixed;right:18px;bottom:18px;background:#152118;border:1px solid var(--g);padding:12px 16px;border-radius:12px;z-index:200;display:none}.small{font-size:12px}.dangertext{color:#ff8d8d}footer{position:fixed;left:112px;right:0;bottom:0;background:rgba(3,6,4,.94);border-top:1px solid #172119;padding:8px 14px;display:flex;justify-content:space-between;color:#89948d;font-size:12px;z-index:15}.stockForm{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.stockProductDetails{margin-top:12px;border:1px solid var(--line);background:#0f1711;border-radius:14px;padding:14px}
+:root{--g:#38d84b;--g2:#24a938;--bg:#050805;--panel:#0c130e;--panel2:#101912;--line:#243128;--muted:#a7b1aa;--danger:#ff5b5b}*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}button,input,select{font:inherit}button{cursor:pointer}.app{min-height:100vh}.side{position:fixed;left:0;top:0;bottom:0;width:112px;background:#030403;border-right:1px solid #172119;z-index:20;display:flex;flex-direction:column;align-items:center}.logo{width:88px;height:118px;display:flex;align-items:center;justify-content:center;padding:8px}.logo img{max-width:100%;max-height:100%;object-fit:contain;filter:none}.nav{width:100%;padding:8px 8px;overflow:auto}.nav button{width:100%;background:none;border:0;color:#dce2de;border-radius:14px;padding:12px 5px;margin:3px 0;font-weight:700;font-size:12px;line-height:1.2}.nav button.active{background:var(--g);color:#041006}.nav .ico{display:block;font-size:23px;margin-bottom:4px}.main{margin-left:112px;padding:20px;max-width:1500px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:18px}.title{font-size:34px;font-weight:900;letter-spacing:.3px}.sub{color:var(--muted)}.user{border:1px solid var(--line);background:var(--panel);padding:14px 18px;border-radius:18px;text-align:center}.page{display:none}.page.active{display:block}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}.card,.box{background:rgba(12,19,14,.94);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 8px 28px rgba(0,0,0,.18)}.label{color:#c6cec8;font-size:17px}.val{font-size:40px;font-weight:900;margin:12px 0 5px}.green{color:var(--g)}.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.toolbar>*{flex:1;min-width:120px}.grow{flex:2!important}input,select{background:#f5f6f5;color:#222;border:1px solid #c9d0cb;border-radius:10px;padding:11px 12px;min-width:0}.btn{border:1px solid #405047;background:#18231b;color:#fff;border-radius:10px;padding:10px 14px;font-weight:800}.greenbtn{background:var(--g);border-color:var(--g);color:#041006}.red{background:#351414;border-color:#713434;color:#fff}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}.table th{color:#aeb8b1;background:#111a14}.tag{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}.ok{background:#12391a;color:#72ed83}.low{background:#493e10;color:#ffe27a}.out{background:#491717;color:#ff8e8e}.total{font-size:30px;font-weight:900;text-align:right;margin:15px 0}.cartitem{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:10px 0}.paygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.pay{border:1px solid var(--line);background:#101811;color:#fff;border-radius:10px;padding:11px;font-weight:800}.pay.active{outline:2px solid var(--g);background:#142e18}.bank-options{display:none;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#101811}.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;align-items:center;justify-content:center;padding:15px}.modal.show{display:flex}.modalbox{width:min(620px,100%);background:#0b120e;border:1px solid var(--line);border-radius:18px;padding:16px}.receipt{background:#fff;color:#111;border-radius:10px;padding:18px;font-family:Arial,sans-serif}.receipt h2,.receipt h3{margin:4px 0}.receipt .rline{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #bbb;padding:7px 0}.receipt .rtotal{font-size:22px;font-weight:900;display:flex;justify-content:space-between;margin-top:10px}.receipt-actions{display:flex;gap:8px;margin-top:10px}.receipt-actions .btn{flex:1}@media print{body *{visibility:hidden!important}#receiptModal,#receiptModal *{visibility:visible!important}#receiptModal{display:block!important;position:absolute!important;inset:0!important;background:#fff!important;padding:0!important}#receiptModal .modalbox{width:100%!important;max-width:420px!important;margin:0 auto!important;border:0!important;background:#fff!important;color:#111!important}#receiptModal .receipt-actions,#receiptModal .receipt-close{display:none!important}}.modal video{width:100%;border-radius:12px;background:#000;max-height:60vh}.toast{position:fixed;right:18px;bottom:18px;background:#152118;border:1px solid var(--g);padding:12px 16px;border-radius:12px;z-index:200;display:none}.small{font-size:12px}.dangertext{color:#ff8d8d}footer{position:fixed;left:112px;right:0;bottom:0;background:rgba(3,6,4,.94);border-top:1px solid #172119;padding:8px 14px;display:flex;justify-content:space-between;color:#89948d;font-size:12px;z-index:15}.stockForm{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.stockProductDetails{margin-top:12px;.installmentCard{border:1px solid #26352b;background:#0f1711;border-radius:14px;padding:14px;margin-top:10px}
+.installmentCard .saleTop{align-items:flex-start}
+.instSummary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.instSummary>div{border:1px solid #26352b;border-radius:9px;padding:8px}
+.instSummary span{display:block;color:#8f9a92;font-size:11px}
+.instSummary b{display:block;margin-top:3px}
+.instActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:800px){.instSummary{grid-template-columns:repeat(2,1fr)}}border:1px solid var(--line);background:#0f1711;border-radius:14px;padding:14px}
 .stockProductDetailsHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
 .stockProductDetailsGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .stockDetail{border:1px solid #26352b;background:#111a14;border-radius:10px;padding:9px}
@@ -111,7 +118,56 @@
 <div class="toolbar"><button class="btn greenbtn" onclick="saveCustomer()">＋ Save Customer</button><button class="btn" onclick="clearCustomerForm()">Clear</button></div>
 </div>
 <div class="box"><h2>Customer List</h2><div class="toolbar"><input id="custSearch" class="grow" placeholder="Search name or mobile..." oninput="renderCustomers()"></div><div id="customersList"></div></div>
-</div></section><section id="installment" class="page"><div class="box"><h2>▤ Installment</h2><div class="sub">Installment module placeholder — customer, financing partner, downpayment and monthly schedule will be added next.</div></div></section>
+</div></section><section id="installment" class="page">
+<div class="grid">
+  <div class="box">
+    <h2>▤ Installment</h2>
+    <div class="sub">Create installment accounts, record payments, and track balances.</div>
+    <div class="stockForm" style="margin-top:14px">
+      <select id="instCustomer" onchange="installmentCustomerChanged()"><option value="">Select customer...</option></select>
+      <select id="instProduct" onchange="installmentProductChanged()"><option value="">Select product...</option></select>
+      <input id="instIMEI" placeholder="IMEI / Serial">
+      <select id="instPartner"><option value="">Financing / Partner</option><option>In-house</option><option>Home Credit</option><option>Skyro</option><option>Palmpay Financing</option><option>BDO</option><option>Other</option></select>
+      <input id="instCashPrice" type="number" step="0.01" min="0" placeholder="Cash / Contract Price">
+      <input id="instDown" type="number" step="0.01" min="0" placeholder="Downpayment">
+      <select id="instMonths"><option value="">Number of months</option><option value="3">3 months</option><option value="6">6 months</option><option value="9">9 months</option><option value="12">12 months</option><option value="18">18 months</option><option value="24">24 months</option><option value="36">36 months</option></select>
+      <input id="instStart" type="date">
+      <input id="instFirstDue" type="date">
+    </div>
+    <div id="instPreview" class="box" style="margin-top:12px;background:#0f1711;display:none"></div>
+    <div class="toolbar">
+      <button class="btn greenbtn" onclick="createInstallment()">＋ Create Installment</button>
+      <button class="btn" onclick="clearInstallmentForm()">Clear</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>Installment Accounts</h2>
+    <div class="toolbar">
+      <input id="instSearch" class="grow" placeholder="Search customer, IMEI, product..." oninput="renderInstallments()">
+      <select id="instStatusFilter" onchange="renderInstallments()">
+        <option value="">All Status</option><option>Active</option><option>Paid</option><option>Overdue</option>
+      </select>
+    </div>
+    <div id="installmentsList"></div>
+  </div>
+</div>
+
+<div id="installmentPayModal" class="modal">
+  <div class="modalCard">
+    <div class="modalHead"><h3>Record Installment Payment</h3><button class="btn" onclick="closeInstallmentPay()">✕</button></div>
+    <div id="instPayInfo" class="sub"></div>
+    <div class="stockForm" style="margin-top:12px">
+      <input id="instPayAmount" type="number" step="0.01" min="0" placeholder="Payment amount">
+      <input id="instPayDate" type="date">
+      <select id="instPayMethod"><option>Cash</option><option>GCash</option><option>Maya</option><option>Card</option><option>Bank Transfer</option><option>Other</option></select>
+      <input id="instPayRef" placeholder="Reference No. (optional)">
+      <input id="instPayNote" placeholder="Note (optional)">
+    </div>
+    <div class="toolbar"><button class="btn greenbtn" onclick="saveInstallmentPayment()">Save Payment</button><button class="btn" onclick="closeInstallmentPay()">Cancel</button></div>
+  </div>
+</div>
+</section>
 <section id="reports" class="page"><div class="box"><h2>▥ Reports</h2><div class="toolbar"><button class="btn greenbtn" onclick="exportCSV()">Export Sales CSV</button><button class="btn" onclick="printReport()">Print Report</button></div><div id="reportsList"></div></div></section>
 <section id="settings" class="page"><div class="box"><h2>⚙ Settings & Backup</h2><div class="sub">Data is stored locally in this browser/device.</div><div class="toolbar"><button class="btn greenbtn" onclick="exportBackup()">Export Backup</button><button class="btn" onclick="document.getElementById('restoreFile').click()">Restore Backup</button><button class="btn red" onclick="resetData()">Reset Local Data</button><input id="restoreFile" type="file" accept=".json" style="display:none" onchange="restoreBackup(event)"></div></div></section>
 </main><footer><span><b class="green">4J's Gadgets POS</b> &nbsp; v4.0 &nbsp; | &nbsp; Powered by Kehns Gadgets</span><span>● System Ready</span></footer><div id="toast" class="toast"></div>
@@ -119,9 +175,9 @@
 <div id="receiptModal" class="modal"><div class="modalbox"><div class="receipt-close" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3>🧾 Sale Receipt</h3><button class="btn red" onclick="closeReceipt()">Close</button></div><div id="receiptContent" class="receipt"></div><div class="receipt-actions"><button class="btn greenbtn" onclick="printReceipt()">🖨 Print Receipt</button><button class="btn" onclick="closeReceipt()">Done</button></div></div></div>
 <script src="https://unpkg.com/@zxing/browser@0.2.1"></script>
 <script>
-let products=JSON.parse(localStorage.getItem('4j_products')||'[]'),sales=JSON.parse(localStorage.getItem('4j_sales')||'[]'),customers=JSON.parse(localStorage.getItem('4j_customers')||'[]'),cart=[],payment='Cash',scanTarget='sale',camStream=null,scanning=false,scanControls=null,zxingReader=null;
+let products=JSON.parse(localStorage.getItem('4j_products')||'[]'),sales=JSON.parse(localStorage.getItem('4j_sales')||'[]'),customers=JSON.parse(localStorage.getItem('4j_customers')||'[]'),installments=JSON.parse(localStorage.getItem('4j_installments')||'[]'),cart=[],payment='Cash',scanTarget='sale',camStream=null,scanning=false,scanControls=null,zxingReader=null;
 const $=id=>document.getElementById(id); const money=n=>'₱'+Number(n||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
-function save(){localStorage.setItem('4j_products',JSON.stringify(products));localStorage.setItem('4j_sales',JSON.stringify(sales));localStorage.setItem('4j_customers',JSON.stringify(customers))}
+function save(){localStorage.setItem('4j_products',JSON.stringify(products));localStorage.setItem('4j_sales',JSON.stringify(sales));localStorage.setItem('4j_customers',JSON.stringify(customers));localStorage.setItem('4j_installments',JSON.stringify(installments))}
 function toast(t){$('toast').textContent=t;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2200)}
 function showPage(id,b){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));if(b)b.classList.add('active');renderAll()}
 function clearProductForm(){['sku','brand','model','variant','imei','supplier','cost','price','editId'].forEach(id=>$(id).value='');$('qty').value=1;$('minStock').value=2;$('category').value='Cellphone';$('serialTracked').checked=false}
@@ -302,6 +358,126 @@ function selectedCustomer(){
   return customers.find(c=>String(c.id)===String(id))||null;
 }
 
+function todayISO(){return new Date().toISOString().slice(0,10)}
+function money2(v){return money(+v||0)}
+function instRemaining(i){
+  let paid=(i.payments||[]).reduce((a,p)=>a+(+p.amount||0),0);
+  return Math.max(0,(+i.financedAmount||0)-paid);
+}
+function instStatus(i){
+  let rem=instRemaining(i);
+  if(rem<=0.005)return 'Paid';
+  if(i.firstDue && i.firstDue<todayISO())return 'Overdue';
+  return 'Active';
+}
+function renderInstallmentOptions(){
+  let c=$('instCustomer'),p=$('instProduct');
+  if(c){
+    let cur=c.value;
+    c.innerHTML='<option value="">Select customer...</option>'+customers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}${x.phone?' • '+esc(x.phone):''}</option>`).join('');
+    if(customers.some(x=>String(x.id)===String(cur)))c.value=cur;
+  }
+  if(p){
+    let cur=p.value;
+    p.innerHTML='<option value="">Select product...</option>'+products.slice().sort((a,b)=>((a.brand+' '+a.model).localeCompare(b.brand+' '+b.model))).map(x=>`<option value="${esc(x.id)}">${esc([x.brand,x.model,x.variant].filter(Boolean).join(' '))}${x.imei?' • IMEI '+esc(x.imei):''}</option>`).join('');
+    if(products.some(x=>String(x.id)===String(cur)))p.value=cur;
+  }
+}
+function installmentCustomerChanged(){}
+function installmentProductChanged(){
+  let p=products.find(x=>String(x.id)===String($('instProduct').value));
+  if(!p)return;
+  $('instIMEI').value=p.imei||'';
+  if($('instCashPrice').value==='')$('instCashPrice').value=(+p.price||+p.sellingPrice||0);
+  updateInstallmentPreview();
+}
+function updateInstallmentPreview(){
+  let price=+($('instCashPrice')?.value||0),down=+($('instDown')?.value||0),months=+($('instMonths')?.value||0);
+  let el=$('instPreview');
+  if(!el)return;
+  if(!price&&!down&&!months){el.style.display='none';return;}
+  let financed=Math.max(0,price-down),monthly=months?financed/months:0;
+  el.style.display='block';
+  el.innerHTML=`<b>Installment Preview</b><div class="instSummary">
+    <div><span>Contract Price</span><b>${money2(price)}</b></div>
+    <div><span>Downpayment</span><b>${money2(down)}</b></div>
+    <div><span>Financed Balance</span><b>${money2(financed)}</b></div>
+    <div><span>Monthly Payment</span><b>${months?money2(monthly):'-'}</b></div>
+  </div>`;
+}
+function clearInstallmentForm(){
+  $('instCustomer').value='';$('instProduct').value='';$('instIMEI').value='';$('instPartner').value='';
+  $('instCashPrice').value='';$('instDown').value='';$('instMonths').value='';
+  let d=todayISO();$('instStart').value=d;$('instFirstDue').value=d;
+  updateInstallmentPreview();
+}
+function createInstallment(){
+  let customer=customers.find(c=>String(c.id)===String($('instCustomer').value));
+  let product=products.find(p=>String(p.id)===String($('instProduct').value));
+  let price=+($('instCashPrice').value||0),down=+($('instDown').value||0),months=+($('instMonths').value||0);
+  if(!customer)return alert('Select a customer.');
+  if(!product)return alert('Select a product.');
+  if(price<=0)return alert('Enter the contract price.');
+  if(down<0||down>price)return alert('Downpayment must be between ₱0 and the contract price.');
+  if(!months)return alert('Select the number of months.');
+  let start=$('instStart').value||todayISO(),firstDue=$('instFirstDue').value||start;
+  let financed=Math.max(0,price-down),monthly=months?financed/months:0;
+  let inst={
+    id:String(Date.now()+Math.random()),customerId:customer.id,customerName:customer.name,customerPhone:customer.phone||'',
+    productId:product.id,productName:[product.brand,product.model,product.variant].filter(Boolean).join(' '),
+    imei:$('instIMEI').value.trim()||product.imei||'',partner:$('instPartner').value||'In-house',
+    contractPrice:price,downpayment:down,financedAmount:financed,months,monthlyPayment:monthly,
+    startDate:start,firstDue,payments:[],createdAt:new Date().toISOString()
+  };
+  if(financed<=0)inst.payments=[{id:String(Date.now()),amount:0,date:start,method:'Downpayment',ref:'',note:'Paid in full at setup'}];
+  installments.push(inst);save();renderInstallments();clearInstallmentForm();toast('Installment account created.');
+}
+function openInstallmentPay(id){
+  let i=installments.find(x=>String(x.id)===String(id));if(!i)return;
+  window.currentInstallmentId=i.id;
+  $('instPayInfo').innerHTML=`<b>${esc(i.customerName)}</b> • ${esc(i.productName)}<br>Remaining balance: <b>${money2(instRemaining(i))}</b>`;
+  $('instPayAmount').value=Math.min(+i.monthlyPayment||instRemaining(i),instRemaining(i)).toFixed(2);
+  $('instPayDate').value=todayISO();$('instPayMethod').value='Cash';$('instPayRef').value='';$('instPayNote').value='';
+  $('installmentPayModal').classList.add('show');
+}
+function closeInstallmentPay(){window.currentInstallmentId=null;$('installmentPayModal').classList.remove('show')}
+function saveInstallmentPayment(){
+  let i=installments.find(x=>String(x.id)===String(window.currentInstallmentId));if(!i)return;
+  let amount=+($('instPayAmount').value||0),rem=instRemaining(i);
+  if(amount<=0)return alert('Enter a payment amount.');
+  if(amount>rem+0.005)return alert('Payment cannot be greater than the remaining balance.');
+  i.payments=i.payments||[];
+  i.payments.push({id:String(Date.now()+Math.random()),amount,date:$('instPayDate').value||todayISO(),method:$('instPayMethod').value,ref:$('instPayRef').value.trim(),note:$('instPayNote').value.trim()});
+  save();closeInstallmentPay();renderInstallments();toast('Installment payment saved.');
+}
+function deleteInstallment(id){
+  let i=installments.find(x=>String(x.id)===String(id));if(!i)return;
+  if(!confirm('Delete this installment account?'))return;
+  installments=installments.filter(x=>String(x.id)!==String(id));save();renderInstallments();toast('Installment account deleted.');
+}
+function renderInstallments(){
+  let el=$('installmentsList');if(!el)return;
+  let q=($('instSearch')?.value||'').trim().toLowerCase(),filter=$('instStatusFilter')?.value||'';
+  let arr=installments.filter(i=>!q||[i.customerName,i.customerPhone,i.productName,i.imei,i.partner].join(' ').toLowerCase().includes(q))
+    .filter(i=>!filter||instStatus(i)===filter).slice().sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  el.innerHTML=arr.length?arr.map(i=>{
+    let status=instStatus(i),paid=(+i.financedAmount||0)-instRemaining(i);
+    let payRows=(i.payments||[]).slice().reverse().map(p=>`<div class="sub small" style="margin-top:5px">• ${esc(p.date)} — ${money2(p.amount)} — ${esc(p.method)}${p.ref?' — Ref '+esc(p.ref):''}</div>`).join('');
+    return `<div class="installmentCard">
+      <div class="saleTop"><div><b>${esc(i.customerName)}</b><div class="sub small">${esc(i.productName)}${i.imei?' • IMEI '+esc(i.imei):''}</div></div><span class="tag ${status==='Paid'?'ok':status==='Overdue'?'danger':''}">${status}</span></div>
+      <div class="sub small" style="margin-top:7px">Partner: ${esc(i.partner)} • ${i.months} months • Start: ${esc(i.startDate)} • First due: ${esc(i.firstDue)}</div>
+      <div class="instSummary">
+        <div><span>Contract</span><b>${money2(i.contractPrice)}</b></div>
+        <div><span>Downpayment</span><b>${money2(i.downpayment)}</b></div>
+        <div><span>Paid</span><b>${money2(paid)}</b></div>
+        <div><span>Remaining</span><b>${money2(instRemaining(i))}</b></div>
+      </div>
+      <div class="sub small" style="margin-top:8px">Monthly: <b>${money2(i.monthlyPayment)}</b></div>
+      ${payRows?`<div style="margin-top:9px"><b>Payment History</b>${payRows}</div>`:''}
+      <div class="instActions">${instRemaining(i)>0.005?`<button class="btn greenbtn" onclick="openInstallmentPay('${i.id}')">＋ Record Payment</button>`:''}<button class="btn red" onclick="deleteInstallment('${i.id}')">Delete</button></div>
+    </div>`;
+  }).join(''):'<p class="sub">No installment accounts yet.</p>';
+}
 function showReceipt(s){let rows=s.items.map(i=>`<div class="rline"><span>${esc(i.name)} × ${i.qty}</span><b>${money(i.price*i.qty)}</b></div>`).join('');let bank=s.payment==='Bank Transfer'?`<div class="rline"><span>Bank</span><b>${esc(s.bank||'-')}</b></div><div class="rline"><span>Reference</span><b>${esc(s.bankReference||'-')}</b></div>`:'';let cash=s.payment==='Cash'?`<div class="rline"><span>Cash Received</span><b>${money(s.cashReceived||0)}</b></div><div class="rline"><span>Change</span><b>${money(s.change||0)}</b></div>`:'';let customer=s.customerName?`<div class="rline"><span>Customer</span><b>${esc(s.customerName)}</b></div>`:'';$('receiptContent').innerHTML=`<div style="text-align:center"><h2>4J'S GADGETS</h2><div>CELL PHONES • ACCESSORIES • GADGETS • INSTALLMENT</div><hr></div><div class="rline"><span>Transaction</span><b>#${esc(String(s.id))}</b></div><div class="rline"><span>Date</span><b>${new Date(s.date).toLocaleString('en-PH')}</b></div>${customer}${rows}<div class="rline"><span>Subtotal</span><b>${money(s.items.reduce((a,i)=>a+i.price*i.qty,0))}</b></div><div class="rline"><span>Discount</span><b>-${money(s.discount)}</b></div>${bank}<div class="rline"><span>Payment</span><b>${esc(s.payment)}</b></div>${cash}<div class="rtotal"><span>TOTAL</span><span>${money(s.total)}</span></div><hr><div style="text-align:center;margin-top:12px">Thank you for your purchase!<br><b>4J'S GADGETS</b><br><small>Powered by Kehns Gadgets</small></div>`;$('receiptModal').classList.add('show')}
 function closeReceipt(){$('receiptModal').classList.remove('show')}
 function printReceipt(){window.print()}
@@ -311,11 +487,11 @@ function renderSaleProducts(){let q=($('saleCode')?.value||'').toLowerCase();let
 function voidSale(id){let s=sales.find(x=>String(x.id)===String(id));if(!s)return;if(s.voided)return alert('This transaction is already voided.');if(!confirm('Void transaction #'+s.id+'? The sold stock will be returned to inventory and this transaction will remain in history as VOIDED.'))return;s.items.forEach(i=>{let p=products.find(x=>String(x.id)===String(i.id));if(p)p.stock+=i.qty});s.voided=true;s.voidDate=new Date().toISOString();save();renderAll();toast('Transaction voided and stock restored.')}
 function renderReports(){let rows=sales.slice().reverse();$('reportsList').innerHTML=rows.length?`<div class="saleHistory">${rows.map(s=>{let status=s.voided?'VOIDED':'COMPLETED';let itemCount=s.items.reduce((a,i)=>a+i.qty,0);return `<div class="saleCard"><div class="saleTop"><div><b>#${esc(String(s.id))}</b><div class="sub small">${new Date(s.date).toLocaleString('en-PH')}</div></div><span class="saleStatus ${s.voided?'voided':'completed'}">${status}</span></div><div class="saleGrid"><div><span>Payment</span><b>${esc(s.payment)}</b></div><div><span>Items</span><b>${itemCount}</b></div><div><span>Total</span><b>${money(s.total)}</b></div></div>${s.customerName?`<div class="sub small">Customer: ${esc(s.customerName)}${s.customerPhone?' • '+esc(s.customerPhone):''}</div>`:''}${s.payment==='Bank Transfer'?`<div class="sub small bankline">${esc(s.bank||'-')} / Ref: ${esc(s.bankReference||'-')}</div>`:''}${s.voided?`<div class="sub small">Voided: ${new Date(s.voidDate).toLocaleString('en-PH')}</div>`:`<button class="btn danger voidBtn" onclick="voidSale('${s.id}')">VOID TRANSACTION</button>`}</div>`}).join('')}</div>`:'<p class="sub">No sales yet.</p>'}
 
-function renderAll(){let today=new Date().toDateString(),ts=sales.filter(s=>!s.voided&&new Date(s.date).toDateString()===today),ss=ts.reduce((a,s)=>a+s.total,0),it=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+i.qty,0),0),pr=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0)-s.discount,0),iv=products.reduce((a,p)=>a+p.cost*p.stock,0);$('dSales').textContent=money(ss);$('dProfit').textContent=money(pr);$('dItems').textContent=it;$('dInv').textContent=money(iv);$('dTx').textContent=ts.length+' transaction(s)';$('dStock').textContent=products.reduce((a,p)=>a+p.stock,0)+' units';renderDashboardProducts();renderSaleProducts();renderMaster();renderInventory();renderReports();renderCart();renderStockHistory();renderCustomers();renderCustomerOptions()}
+function renderAll(){let today=new Date().toDateString(),ts=sales.filter(s=>!s.voided&&new Date(s.date).toDateString()===today),ss=ts.reduce((a,s)=>a+s.total,0),it=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+i.qty,0),0),pr=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0)-s.discount,0),iv=products.reduce((a,p)=>a+p.cost*p.stock,0);$('dSales').textContent=money(ss);$('dProfit').textContent=money(pr);$('dItems').textContent=it;$('dInv').textContent=money(iv);$('dTx').textContent=ts.length+' transaction(s)';$('dStock').textContent=products.reduce((a,p)=>a+p.stock,0)+' units';renderDashboardProducts();renderSaleProducts();renderMaster();renderInventory();renderReports();renderCart();renderStockHistory();renderCustomers();renderCustomerOptions();renderInstallmentOptions();renderInstallments();['instCashPrice','instDown','instMonths'].forEach(id=>{if($(id))$(id).addEventListener('input',updateInstallmentPreview)})}
 function exportCSV(){let rows=[['Date','Transaction','Status','Payment','Bank','Reference','SKU','Product','Qty','Price','Cost','Total']];sales.forEach(s=>s.items.forEach(i=>rows.push([s.date,s.id,s.voided?'VOIDED':'COMPLETED',s.payment,s.bank||'',s.bankReference||'',i.sku,i.name,i.qty,i.price,i.cost,s.total])));let blob=new Blob([rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='4Js_Gadgets_Sales.csv';a.click()}
-function exportBackup(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({products,sales,customers},null,2)],{type:'application/json'}));a.download='4Js_Gadgets_POS_Backup.json';a.click()}
-function restoreBackup(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);products=d.products||[];sales=d.sales||[];customers=d.customers||[];save();renderAll();toast('Backup restored.')}catch(x){alert('Invalid backup file.')}};r.readAsText(f)}
-function resetData(){if(confirm('Delete all local POS data?')){products=[];sales=[];customers=[];cart=[];save();renderAll();toast('Local data reset.')}}
+function exportBackup(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({products,sales,customers,installments},null,2)],{type:'application/json'}));a.download='4Js_Gadgets_POS_Backup.json';a.click()}
+function restoreBackup(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);products=d.products||[];sales=d.sales||[];customers=d.customers||[];installments=d.installments||[];save();renderAll();toast('Backup restored.')}catch(x){alert('Invalid backup file.')}};r.readAsText(f)}
+function resetData(){if(confirm('Delete all local POS data?')){products=[];sales=[];customers=[];installments=[];cart=[];save();renderAll();toast('Local data reset.')}}
 function printReport(){window.print()}
 async function scanCamera(target){
   scanTarget=target||'sale';
