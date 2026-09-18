@@ -204,15 +204,16 @@
     </div>
     <input type="hidden" id="quickUnitType" value="Second Hand">
   </div>
-  <p class="sub small">IMEI was not found in Product Master. Choose whether the unit is Brand New or Second Hand, then enter the unit details and set the Cost and Selling Price manually.</p>
+  <p class="sub small">New IMEI detected. Select the existing product from Product Master, choose Brand New or Second Hand, then enter the unit Cost and Selling Price.</p>
   <label>IMEI / Serial<input id="quickUnitIMEI" readonly></label>
-  <label>Brand<input id="quickUnitBrand" placeholder="e.g. Apple"></label>
-  <label>Model<input id="quickUnitModel" placeholder="e.g. iPhone 13 Pro Max"></label>
-  <label>Variant / Storage / Color<input id="quickUnitVariant" placeholder="e.g. 128GB Gray"></label>
-  <label>Category<input id="quickUnitCategory" value="Second Hand"></label>
-  <label>Supplier<input id="quickUnitSupplier" placeholder="Optional"></label>
-  <label>Cost Price<input id="quickUnitCost" type="number" min="0" step="0.01" placeholder="Enter your cost"></label>
-  <label>Selling Price<input id="quickUnitPrice" type="number" min="0" step="0.01" placeholder="Enter selling price"></label>
+  <label>Existing Product from Product Master<select id="quickUnitProduct" onchange="quickProductChanged()"><option value="">— Select Product —</option></select></label>
+  <div id="quickProductPreview" class="sub small" style="margin:6px 0 10px"></div>
+  <label style="display:none">Brand<input id="quickUnitBrand"></label>
+  <label style="display:none">Model<input id="quickUnitModel"></label>
+  <label style="display:none">Variant / Storage / Color<input id="quickUnitVariant"></label>
+  <input type="hidden" id="quickUnitCategory" value="Second Hand">
+  <label>Cost Price<input id="quickUnitCost" type="number" min="0" step="0.01" placeholder="Enter cost of this unit"></label>
+  <label>Selling Price<input id="quickUnitPrice" type="number" min="0" step="0.01" placeholder="Enter selling price of this unit"></label>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn greenbtn" onclick="saveScannedUnitToInventory()">＋ Add Unit to Inventory</button>
     <button class="btn" onclick="cancelScannedUnit()">Cancel</button>
@@ -598,19 +599,37 @@ function setScannedUnitType(type){
   if(sh)sh.classList.toggle('greenbtn',type==='Second Hand');
   if($('quickUnitCategory'))$('quickUnitCategory').value=type;
 }
-function showQuickAddUnit(imei){
+function populateQuickProductSelect(selectedId){
+  let el=$('quickUnitProduct');if(!el)return;
+  let opts=products.slice().sort((a,b)=>(String(a.brand+' '+a.model)).localeCompare(String(b.brand+' '+b.model))).map(p=>{
+    let name=p.brand+' '+p.model+(p.variant?' • '+p.variant:'');
+    return `<option value="${esc(String(p.id))}">${esc(name)}</option>`;
+  }).join('');
+  el.innerHTML='<option value="">— Select Product —</option>'+opts;
+  if(selectedId!==undefined && selectedId!==null)el.value=String(selectedId);
+  quickProductChanged();
+}
+function quickProductChanged(){
+  let id=$('quickUnitProduct')?.value||'',p=products.find(x=>String(x.id)===String(id));
+  let preview=$('quickProductPreview');
+  if(!p){if(preview)preview.innerHTML='<span class="sub">Select the matching Product Master item.</span>';return;}
+  $('quickUnitBrand').value=p.brand||'';
+  $('quickUnitModel').value=p.model||'';
+  $('quickUnitVariant').value=p.variant||'';
+  if(preview)preview.innerHTML=`<span class="green">✓ Using Product Master:</span> ${esc(p.brand+' '+p.model+(p.variant?' • '+p.variant:''))}`;
+  if($('quickUnitCost').value==='' && +p.cost>0)$('quickUnitCost').value=p.cost;
+  if($('quickUnitPrice').value==='' && +p.price>0)$('quickUnitPrice').value=p.price;
+}
+function showQuickAddUnit(imei,preferredProductId){
   $('quickAddUnitPanel').style.display='block';
   $('quickUnitIMEI').value=imei;
-  $('quickUnitBrand').value='Apple';
-  $('quickUnitModel').value='';
-  $('quickUnitVariant').value='';
+  $('quickUnitCost').value='';
+  $('quickUnitPrice').value='';
   $('quickUnitCategory').value='Second Hand';
   $('quickUnitType').value='Second Hand';
   setScannedUnitType('Second Hand');
-  $('quickUnitSupplier').value='';
-  $('quickUnitCost').value='';
-  $('quickUnitPrice').value='';
-  $('quickUnitModel').focus();
+  populateQuickProductSelect(preferredProductId||'');
+  $('quickUnitProduct').focus();
 }
 function cancelScannedUnit(){
   if($('quickAddUnitPanel'))$('quickAddUnitPanel').style.display='none';
@@ -618,39 +637,39 @@ function cancelScannedUnit(){
 }
 function saveScannedUnitToInventory(){
   let imei=$('quickUnitIMEI').value.trim(),
-      brand=$('quickUnitBrand').value.trim(),
-      model=$('quickUnitModel').value.trim(),
-      variant=$('quickUnitVariant').value.trim(),
+      pid=$('quickUnitProduct').value,
+      p=products.find(x=>String(x.id)===String(pid)),
       unitType=$('quickUnitType').value==='Brand New'?'Brand New':'Second Hand',
-      category=unitType,
-      supplier=$('quickUnitSupplier').value.trim(),
       cost=Math.max(0,+$('quickUnitCost').value||0),
       price=Math.max(0,+$('quickUnitPrice').value||0);
   if(!imei)return alert('IMEI/Serial is required.');
-  if(!brand||!model)return alert('Enter the Brand and Model.');
+  if(!p)return alert('Select the matching product from Product Master.');
   if(cost<=0)return alert('Enter the Cost Price of this unit.');
   if(price<=0)return alert('Enter the Selling Price of this unit.');
   let n=normalizeUnitCode(imei);
-  if(products.some(p=>getProductUnitIMEIs(p).some(x=>normalizeUnitCode(x)===n)))return alert('This IMEI/Serial already exists in inventory.');
-  let sku='IMEI-'+n;
-  if(products.some(p=>String(p.sku).toLowerCase()===sku.toLowerCase()))sku=sku+'-'+Date.now().toString().slice(-5);
-  let id=Date.now();
-  let p={id,sku,barcode:sku,brand,model,variant,category,unitType,supplier,cost,price,stock:1,serialTracked:true,imeis:[imei],imei:''};
-  products.push(p);
-  let stockRec={id:Date.now()+1,date:new Date().toISOString().slice(0,10),productId:p.id,sku:p.sku,product:brand+' '+model+(variant?' '+variant:''),supplier:supplier||'',qty:1,cost:cost,total:cost,reference:'IMEI '+imei,imeis:[imei],source:'IMEI Auto Add',unitType,user:currentUserLabel()};
+  if(products.some(x=>getProductUnitIMEIs(x).some(v=>normalizeUnitCode(v)===n)))return alert('This IMEI/Serial already exists in inventory.');
+
+  let units=getProductUnitIMEIs(p);
+  p.stock=Math.max(0,+p.stock||0)+1;
+  p.imeis=units.concat([imei]);
+  p.serialTracked=true;
+  p.unitType=unitType;
+  p.category=p.category||'Cellphone';
+  p.cost=cost;
+  p.price=price;
+
+  let stockRec={id:Date.now(),date:new Date().toISOString().slice(0,10),productId:p.id,sku:p.sku,product:p.brand+' '+p.model+(p.variant?' '+p.variant:''),supplier:p.supplier||'',qty:1,cost:cost,total:cost,reference:'IMEI '+imei,imeis:[imei],source:'IMEI Auto Add',unitType,user:currentUserLabel()};
   let stockHistory=JSON.parse(localStorage.getItem('4j_stockins')||'[]');
   stockHistory.push(stockRec);
   localStorage.setItem('4j_stockins',JSON.stringify(stockHistory));
   save();
-  logActivity('Second-Hand Unit Added',brand+' '+model+(variant?' '+variant:'')+' • IMEI '+imei);
-  $('stockInfo').innerHTML=`<p class="green">✓ Added to Inventory: ${esc(brand+' '+model+(variant?' '+variant:''))} • IMEI ${esc(imei)} • Stock 1 • Cost ${money(cost)} • Selling ${money(price)}</p>`;
+  logActivity('Unit Added via IMEI Scan',stockRec.product+' • IMEI '+imei+' • '+unitType);
+  $('stockInfo').innerHTML=`<p class="green">✓ Added to Inventory: ${esc(stockRec.product)} • ${esc(unitType)} • IMEI ${esc(imei)} • Stock ${p.stock} • Cost ${money(cost)} • Selling ${money(price)}</p>`;
   cancelScannedUnit();
   renderAll();initStockIn();
-  if(typeof renderStockHistory==='function') renderStockHistory();
-  // Select the newly-created unit in Stock In for visibility.
-  if($('stockProduct')){$('stockProduct').value=String(p.id);stockProductChanged();}
-  if($('stockScanStatus'))$('stockScanStatus').innerHTML='<span class="green">✓ Unit added to Inventory.</span>';
-  toast('Second-hand unit added to inventory.');
+  if(typeof renderStockHistory==='function')renderStockHistory();
+  if($('stockScanStatus'))$('stockScanStatus').innerHTML='<span class="green">✓ Unit added to Inventory using the existing Product Master item.</span>';
+  toast(unitType+' unit added to inventory.');
 }
 function processStockScan(code){
   code=String(code||'').trim();if(!code)return;
@@ -700,9 +719,14 @@ function processStockScan(code){
     }
   }
 
-  $('stockScanStatus').innerHTML=`<span class="green">✓ New IMEI detected.</span> Complete the unit details above to automatically add it to Inventory.`;
-  if(/^\d{14,16}$/.test(scanDigits(code)) || scanDigits(code).length>=10)showQuickAddUnit(code);
-  else alert('Product not found. Scan a valid IMEI/Serial or add the product in Product Master.');
+  const isIMEI=/^\d{14,16}$/.test(scanDigits(code)) || scanDigits(code).length>=10;
+  if(isIMEI){
+    $('stockScanStatus').innerHTML=`<span class="green">✓ New IMEI detected.</span> Select the existing Product Master item, choose Brand New or Second Hand, then enter Cost and Selling Price.`;
+    showQuickAddUnit(code,p?p.id:'');
+  }else{
+    $('stockScanStatus').innerHTML='<span class="sub">Product not found.</span>';
+    alert('Product not found. Scan a valid IMEI/Serial or add the product in Product Master.');
+  }
 }
 function stockIn(){
   let pid=$('stockProduct').value,q=Math.floor(+$('stockQty').value||0),supplier=$('stockSupplier').value.trim(),date=$('stockDate').value||new Date().toISOString().slice(0,10),costVal=$('stockCost').value===''?null:Math.max(0,+$('stockCost').value||0),ref=$('stockRef').value.trim(),p=products.find(x=>String(x.id)===String(pid));
