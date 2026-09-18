@@ -635,8 +635,10 @@ function saveScannedUnitToInventory(){
   let id=Date.now();
   let p={id,sku,barcode:sku,brand,model,variant,category,supplier,cost,price,stock:1,serialTracked:true,imeis:[imei],imei:''};
   products.push(p);
-  let stockRec={id:Date.now()+1,date:new Date().toISOString().slice(0,10),productId:p.id,sku:p.sku,product:brand+' '+model+(variant?' '+variant:''),supplier:supplier||'',qty:1,cost:cost,totalCost:cost,reference:'IMEI '+imei,imeis:[imei],source:'Second-Hand Auto Add'};
-  stockIns.push(stockRec);
+  let stockRec={id:Date.now()+1,date:new Date().toISOString().slice(0,10),productId:p.id,sku:p.sku,product:brand+' '+model+(variant?' '+variant:''),supplier:supplier||'',qty:1,cost:cost,total:cost,reference:'IMEI '+imei,imeis:[imei],source:'Second-Hand Auto Add',user:currentUserLabel()};
+  let stockHistory=JSON.parse(localStorage.getItem('4j_stockins')||'[]');
+  stockHistory.push(stockRec);
+  localStorage.setItem('4j_stockins',JSON.stringify(stockHistory));
   save();
   logActivity('Second-Hand Unit Added',brand+' '+model+(variant?' '+variant:'')+' • IMEI '+imei);
   $('stockInfo').innerHTML=`<p class="green">✓ Added to Inventory: ${esc(brand+' '+model+(variant?' '+variant:''))} • IMEI ${esc(imei)} • Stock 1 • Cost ${money(cost)} • Selling ${money(price)}</p>`;
