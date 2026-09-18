@@ -204,7 +204,7 @@
     </div>
     <input type="hidden" id="quickUnitType" value="Second Hand">
   </div>
-  <p class="sub small">New IMEI detected. Select the existing product from Product Master, choose Brand New or Second Hand, then enter the unit Cost and Selling Price.</p>
+  <p class="sub small">New IMEI detected. Select the correct existing product from Product Master, choose Brand New or Second Hand, then enter the unit Cost and Selling Price. The system will not guess or create a new product.</p>
   <label>IMEI / Serial<input id="quickUnitIMEI" readonly></label>
   <label>Existing Product from Product Master<select id="quickUnitProduct" onchange="quickProductChanged()"><option value="">— Select Product —</option></select></label>
   <div id="quickProductPreview" class="sub small" style="margin:6px 0 10px"></div>
@@ -721,8 +721,10 @@ function processStockScan(code){
 
   const isIMEI=/^\d{14,16}$/.test(scanDigits(code)) || scanDigits(code).length>=10;
   if(isIMEI){
-    $('stockScanStatus').innerHTML=`<span class="green">✓ New IMEI detected.</span> Select the existing Product Master item, choose Brand New or Second Hand, then enter Cost and Selling Price.`;
-    showQuickAddUnit(code,p?p.id:'');
+    $('stockScanStatus').innerHTML=`<span class="green">✓ New IMEI detected.</span> No exact unit match. Select the correct Product Master item below, choose Brand New or Second Hand, then enter Cost and Selling Price.`;
+    // A new IMEI cannot reliably determine the phone model by itself.
+    // Do NOT preselect a product from a loose match; require the user to choose the exact Product Master item.
+    showQuickAddUnit(code,'');
   }else{
     $('stockScanStatus').innerHTML='<span class="sub">Product not found.</span>';
     alert('Product not found. Scan a valid IMEI/Serial or add the product in Product Master.');
