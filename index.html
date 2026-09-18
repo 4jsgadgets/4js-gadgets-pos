@@ -667,7 +667,7 @@ function saveScannedUnitToInventory(){
   products.push(newProduct);
 
   let productName=brand+' '+model+(variant?' '+variant:'');
-  let stockRec={id:Date.now()+1,date:new Date().toISOString().slice(0,10),productId:newProduct.id,sku:newProduct.sku,product:productName,supplier:'',qty:1,cost,total:cost,reference:'IMEI '+imei,imeis:[imei],source:'IMEI Auto Add',unitType,user:currentUserLabel()};
+  let stockRec={id:Date.now()+1,date:new Date().toISOString().slice(0,10),productId:newProduct.id,sku:newProduct.sku,product:productName,supplier:'',qty:1,cost,total:cost,reference:'IMEI '+imei,imeis:[imei],source:'IMEI Auto Add',unitType,price,user:currentUserLabel()};
   let stockHistory=JSON.parse(localStorage.getItem('4j_stockins')||'[]');
   stockHistory.push(stockRec);
   localStorage.setItem('4j_stockins',JSON.stringify(stockHistory));
@@ -757,7 +757,13 @@ function stockIn(){
 function renderStockHistory(){
   let el=$('stockHistory');if(!el)return;
   let arr=JSON.parse(localStorage.getItem('4j_stockins')||'[]').slice().reverse();
-  el.innerHTML=arr.length?'<div class="stockHistory">'+arr.map(e=>`<div class="stockCard"><div class="stockCardTop"><div><b>${esc(e.product)}</b><div class="sub small">${esc(e.sku)} • ${esc(e.date)}</div></div><span class="tag ok">RECEIVED</span></div><div class="stockMeta"><div><span>Supplier</span><b>${esc(e.supplier||'-')}</b></div><div><span>Quantity</span><b>${e.qty}</b></div><div><span>Cost / Unit</span><b>${money(e.cost)}</b></div><div><span>Total Cost</span><b>${money(e.total)}</b></div></div>${e.reference?`<div class="stockRef">Reference: ${esc(e.reference)}</div>`:''}${Array.isArray(e.imeis)&&e.imeis.length?`<div class="stockRef">IMEI / Serial: ${e.imeis.map(esc).join(', ')}</div>`:''}</div>`).join('')+'</div>':'<p class="sub">No stock-in records yet.</p>';
+  el.innerHTML=arr.length?'<div class="stockHistory">'+arr.map(e=>{
+    let unitType=e.unitType||'Unit';
+    let badge=unitType==='Second Hand'?'SECOND HAND':(unitType==='Brand New'?'BRAND NEW':'RECEIVED');
+    let badgeClass=unitType==='Second Hand'?'used':'ok';
+    let imei=Array.isArray(e.imeis)&&e.imeis.length?e.imeis.join(', '):(e.reference&&String(e.reference).replace(/^IMEI\s*/i,'')||'');
+    return `<div class="stockCard"><div class="stockCardTop"><div><b>${esc(e.product||'Unnamed Unit')}</b><div class="sub small">${esc(e.date||'')}</div></div><span class="tag ${badgeClass}">${badge}</span></div><div class="stockMeta"><div><span>IMEI / Serial</span><b>${esc(imei||'-')}</b></div><div><span>Cost</span><b>${money(e.cost||0)}</b></div><div><span>Selling</span><b>${money(e.price||0)}</b></div><div><span>Stock</span><b>1</b></div></div></div>`;
+  }).join('')+'</div>':'<p class="sub">No stock-in records yet.</p>';
 }
 function findProduct(code){let c=String(code||'').trim().toLowerCase();return products.find(p=>[p.sku,p.imei,p.model].some(v=>String(v||'').toLowerCase()===c))||products.find(p=>[p.sku,p.imei,p.model,p.brand].some(v=>String(v||'').toLowerCase().includes(c)))}
 function addById(id){let p=products.find(x=>String(x.id)===String(id));if(!p)return alert('Product not found.');add(p)}
