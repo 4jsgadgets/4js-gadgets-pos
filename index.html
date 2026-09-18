@@ -868,13 +868,22 @@ function getUnitPriceFromHistory(imei, field){
   let list=[];
   try{list=JSON.parse(localStorage.getItem('4j_stockins')||'[]')}catch(e){list=[]}
   for(let i=list.length-1;i>=0;i--){
-    const r=list[i], codes=Array.isArray(r.imeis)?r.imeis:[];
-    if(codes.some(x=>normalizeUnitCode(x)===n)){
-      const v=field==='price' ? r.price : (r.cost!==undefined?r.cost:r.costPrice);
+    const r=list[i]||{};
+    const codes=Array.isArray(r.imeis)?r.imeis.map(String):[];
+    const ref=String(r.reference||'');
+    const refDigits=normalizeUnitCode(ref);
+    const matches=codes.some(x=>normalizeUnitCode(x)===n) || (refDigits && refDigits===n) || refDigits.endsWith(n) || n.endsWith(refDigits);
+    if(matches){
+      const v=field==='price' ? (r.price!==undefined&&r.price!==null&&r.price!==''?r.price:r.sellingPrice) : (r.cost!==undefined?r.cost:(r.costPrice!==undefined?r.costPrice:r.purchaseCost));
       const num=Number(v); if(num>0)return num;
     }
   }
   return 0;
+}
+function resolveUnitPrices(p, imei){
+  const price=productSellingPrice(p) || getUnitPriceFromHistory(imei,'price');
+  const cost=productCostPrice(p) || getUnitPriceFromHistory(imei,'cost');
+  return {price:Number(price)||0,cost:Number(cost)||0};
 }
 function unitSellingPrice(p, imei){
   const direct=productSellingPrice(p);
@@ -894,7 +903,7 @@ function addSpecificUnit(p,unitIMEI){
   if(!productIsIMEITracked(p))return add(p);
   if(!unitIMEI)return alert('No IMEI/Serial was found for this unit.');
   if(cartHasUnitIMEI(unitIMEI))return alert('This IMEI/Serial is already in the cart.');
-  const name=productDisplayName(p), price=unitSellingPrice(p,unitIMEI), cost=unitCostPrice(p,unitIMEI);
+  const name=productDisplayName(p), resolved=resolveUnitPrices(p,unitIMEI), price=resolved.price, cost=resolved.cost;
   if(price<=0)return alert('This unit has no valid Selling Price. Please update the inventory unit first.');
   let i=cart.find(x=>String(x.id)===String(p.id));
   if(i){
@@ -933,7 +942,7 @@ function add(p){
     unitIMEI=available.find(x=>!used.includes(x))||'';
     if(!unitIMEI)return alert('No available IMEI/Serial is recorded for this product. Stock In the unit with its IMEI/Serial first.');
   }
-  const name=productDisplayName(p), price=productSellingPrice(p), cost=productCostPrice(p);
+  const name=productDisplayName(p), resolved=resolveUnitPrices(p,unitIMEI), price=resolved.price, cost=resolved.cost;
   if(price<=0)return alert('This unit has no valid Selling Price. Please update the inventory unit first.');
   if(i){i.qty++;if(unitIMEI)i.imeis.push(String(unitIMEI))}
   else cart.push({id:p.id,sku:p.sku||'',name,price,cost,qty:1,imeis:unitIMEI?[String(unitIMEI)]:[]});
