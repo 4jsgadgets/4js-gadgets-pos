@@ -204,14 +204,12 @@
     </div>
     <input type="hidden" id="quickUnitType" value="Second Hand">
   </div>
-  <p class="sub small">New IMEI detected. Select the correct existing product from Product Master, choose Brand New or Second Hand, then enter the unit Cost and Selling Price. The system will not guess or create a new product.</p>
+  <p class="sub small">New IMEI detected. This is a separate physical unit, so enter this phone's own details. It will NOT select or copy another Product Master item.</p>
   <label>IMEI / Serial<input id="quickUnitIMEI" readonly></label>
-  <label>Existing Product from Product Master<select id="quickUnitProduct" onchange="quickProductChanged()"><option value="">— Select Product —</option></select></label>
-  <div id="quickProductPreview" class="sub small" style="margin:6px 0 10px"></div>
-  <label style="display:none">Brand<input id="quickUnitBrand"></label>
-  <label style="display:none">Model<input id="quickUnitModel"></label>
-  <label style="display:none">Variant / Storage / Color<input id="quickUnitVariant"></label>
-  <input type="hidden" id="quickUnitCategory" value="Second Hand">
+  <label>Brand *<input id="quickUnitBrand" placeholder="e.g. Apple"></label>
+  <label>Model *<input id="quickUnitModel" placeholder="e.g. iPhone 15"></label>
+  <label>Variant / Storage / Color<input id="quickUnitVariant" placeholder="e.g. 128GB / Blue"></label>
+  <label>Category<select id="quickUnitCategory"><option>Cellphone</option><option>Tablet</option><option>Other</option></select></label>
   <label>Cost Price<input id="quickUnitCost" type="number" min="0" step="0.01" placeholder="Enter cost of this unit"></label>
   <label>Selling Price<input id="quickUnitPrice" type="number" min="0" step="0.01" placeholder="Enter selling price of this unit"></label>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -230,7 +228,7 @@
 
   <div id="stockInfo" class="box" style="margin-top:14px">
     <h3>📦 Stock-In Scanner</h3>
-    <div class="sub">Para sa in-stock: <b>i-scan lang ang IMEI/barcode.</b> Kapag existing na ang unit sa Product Master, automatic itong maidaragdag sa stock. Kapag bagong IMEI, lalabas ang form sa taas para ilagay ang Cost at Selling Price.</div>
+    <div class="sub">Para sa in-stock: <b>i-scan ang IMEI/barcode.</b> Ang bawat bagong phone ay sariling inventory unit. Ilagay ang sariling Brand, Model, Variant/Storage/Color, Unit Type, Cost at Selling Price. Hindi nito kokopyahin ang ibang Product Master item.</div>
   </div>
 </div>
 <div class="box"><h2>Stock-In History</h2><div id="stockHistory"></div></div>
@@ -620,16 +618,18 @@ function quickProductChanged(){
   if($('quickUnitCost').value==='' && +p.cost>0)$('quickUnitCost').value=p.cost;
   if($('quickUnitPrice').value==='' && +p.price>0)$('quickUnitPrice').value=p.price;
 }
-function showQuickAddUnit(imei,preferredProductId){
+function showQuickAddUnit(imei){
   $('quickAddUnitPanel').style.display='block';
   $('quickUnitIMEI').value=imei;
+  $('quickUnitBrand').value='';
+  $('quickUnitModel').value='';
+  $('quickUnitVariant').value='';
+  $('quickUnitCategory').value='Cellphone';
   $('quickUnitCost').value='';
   $('quickUnitPrice').value='';
-  $('quickUnitCategory').value='Second Hand';
   $('quickUnitType').value='Second Hand';
   setScannedUnitType('Second Hand');
-  populateQuickProductSelect(preferredProductId||'');
-  $('quickUnitProduct').focus();
+  $('quickUnitBrand').focus();
 }
 function cancelScannedUnit(){
   if($('quickAddUnitPanel'))$('quickAddUnitPanel').style.display='none';
@@ -637,40 +637,50 @@ function cancelScannedUnit(){
 }
 function saveScannedUnitToInventory(){
   let imei=$('quickUnitIMEI').value.trim(),
-      pid=$('quickUnitProduct').value,
-      p=products.find(x=>String(x.id)===String(pid)),
+      brand=$('quickUnitBrand').value.trim(),
+      model=$('quickUnitModel').value.trim(),
+      variant=$('quickUnitVariant').value.trim(),
+      category=$('quickUnitCategory').value||'Cellphone',
       unitType=$('quickUnitType').value==='Brand New'?'Brand New':'Second Hand',
       cost=Math.max(0,+$('quickUnitCost').value||0),
       price=Math.max(0,+$('quickUnitPrice').value||0);
   if(!imei)return alert('IMEI/Serial is required.');
-  if(!p)return alert('Select the matching product from Product Master.');
+  if(!brand)return alert('Enter the Brand of this unit.');
+  if(!model)return alert('Enter the Model of this unit.');
   if(cost<=0)return alert('Enter the Cost Price of this unit.');
   if(price<=0)return alert('Enter the Selling Price of this unit.');
   let n=normalizeUnitCode(imei);
   if(products.some(x=>getProductUnitIMEIs(x).some(v=>normalizeUnitCode(v)===n)))return alert('This IMEI/Serial already exists in inventory.');
 
-  let units=getProductUnitIMEIs(p);
-  p.stock=Math.max(0,+p.stock||0)+1;
-  p.imeis=units.concat([imei]);
-  p.serialTracked=true;
-  p.unitType=unitType;
-  p.category=p.category||'Cellphone';
-  p.cost=cost;
-  p.price=price;
+  // Each scanned phone is treated as its own inventory unit. Its details are independent
+  // from Product Master because second-hand/new units can differ in storage, color, condition,
+  // price, and cost even when the model is similar.
+  let newProduct={
+    id:Date.now()+Math.floor(Math.random()*1000),
+    sku:'IMEI-'+scanDigits(imei).slice(-8),
+    barcode:'', brand, model, variant, category, supplier:'',
+    cost, price, stock:1, serialTracked:true, imeis:[imei],
+    unitType, condition:unitType==='Second Hand'?'Second Hand':'Brand New',
+    openingStock:1, lowStock:1
+  };
+  if(products.some(x=>String(x.sku||'').toLowerCase()===String(newProduct.sku).toLowerCase()))newProduct.sku='IMEI-'+Date.now();
+  products.push(newProduct);
 
-  let stockRec={id:Date.now(),date:new Date().toISOString().slice(0,10),productId:p.id,sku:p.sku,product:p.brand+' '+p.model+(p.variant?' '+p.variant:''),supplier:p.supplier||'',qty:1,cost:cost,total:cost,reference:'IMEI '+imei,imeis:[imei],source:'IMEI Auto Add',unitType,user:currentUserLabel()};
+  let productName=brand+' '+model+(variant?' '+variant:'');
+  let stockRec={id:Date.now()+1,date:new Date().toISOString().slice(0,10),productId:newProduct.id,sku:newProduct.sku,product:productName,supplier:'',qty:1,cost,total:cost,reference:'IMEI '+imei,imeis:[imei],source:'IMEI Auto Add',unitType,user:currentUserLabel()};
   let stockHistory=JSON.parse(localStorage.getItem('4j_stockins')||'[]');
   stockHistory.push(stockRec);
   localStorage.setItem('4j_stockins',JSON.stringify(stockHistory));
   save();
-  logActivity('Unit Added via IMEI Scan',stockRec.product+' • IMEI '+imei+' • '+unitType);
-  $('stockInfo').innerHTML=`<p class="green">✓ Added to Inventory: ${esc(stockRec.product)} • ${esc(unitType)} • IMEI ${esc(imei)} • Stock ${p.stock} • Cost ${money(cost)} • Selling ${money(price)}</p>`;
+  logActivity('Unit Added via IMEI Scan',productName+' • IMEI '+imei+' • '+unitType);
+  $('stockInfo').innerHTML=`<p class="green">✓ Added to Inventory: ${esc(productName)} • ${esc(unitType)} • IMEI ${esc(imei)} • Stock 1 • Cost ${money(cost)} • Selling ${money(price)}</p>`;
   cancelScannedUnit();
   renderAll();initStockIn();
   if(typeof renderStockHistory==='function')renderStockHistory();
-  if($('stockScanStatus'))$('stockScanStatus').innerHTML='<span class="green">✓ Unit added to Inventory using the existing Product Master item.</span>';
+  if($('stockScanStatus'))$('stockScanStatus').innerHTML='<span class="green">✓ Unit added as a separate inventory item. Product Master was not used to copy details.</span>';
   toast(unitType+' unit added to inventory.');
 }
+
 function processStockScan(code){
   code=String(code||'').trim();if(!code)return;
   const exact=findProductByExactUnitCode(code);
@@ -721,10 +731,10 @@ function processStockScan(code){
 
   const isIMEI=/^\d{14,16}$/.test(scanDigits(code)) || scanDigits(code).length>=10;
   if(isIMEI){
-    $('stockScanStatus').innerHTML=`<span class="green">✓ New IMEI detected.</span> No exact unit match. Select the correct Product Master item below, choose Brand New or Second Hand, then enter Cost and Selling Price.`;
+    $('stockScanStatus').innerHTML=`<span class="green">✓ New IMEI detected.</span> No exact unit match. Enter this unit's own details, choose Brand New or Second Hand, then enter Cost and Selling Price.`;
     // A new IMEI cannot reliably determine the phone model by itself.
     // Do NOT preselect a product from a loose match; require the user to choose the exact Product Master item.
-    showQuickAddUnit(code,'');
+    showQuickAddUnit(code);
   }else{
     $('stockScanStatus').innerHTML='<span class="sub">Product not found.</span>';
     alert('Product not found. Scan a valid IMEI/Serial or add the product in Product Master.');
