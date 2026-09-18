@@ -863,6 +863,27 @@ function productCostPrice(p){
   const v=p.cost!==undefined&&p.cost!==null&&p.cost!==''?p.cost:(p.costPrice!==undefined?p.costPrice:p.purchaseCost);
   return Number(v)||0;
 }
+function getUnitPriceFromHistory(imei, field){
+  const n=normalizeUnitCode(imei); if(!n)return 0;
+  let list=[];
+  try{list=JSON.parse(localStorage.getItem('4j_stockins')||'[]')}catch(e){list=[]}
+  for(let i=list.length-1;i>=0;i--){
+    const r=list[i], codes=Array.isArray(r.imeis)?r.imeis:[];
+    if(codes.some(x=>normalizeUnitCode(x)===n)){
+      const v=field==='price' ? r.price : (r.cost!==undefined?r.cost:r.costPrice);
+      const num=Number(v); if(num>0)return num;
+    }
+  }
+  return 0;
+}
+function unitSellingPrice(p, imei){
+  const direct=productSellingPrice(p);
+  return direct>0 ? direct : getUnitPriceFromHistory(imei,'price');
+}
+function unitCostPrice(p, imei){
+  const direct=productCostPrice(p);
+  return direct>0 ? direct : getUnitPriceFromHistory(imei,'cost');
+}
 function cartHasUnitIMEI(code){
   let n=normalizeUnitCode(code);
   return cart.some(i=>(i.imeis||[]).some(u=>normalizeUnitCode(u)===n));
@@ -873,7 +894,7 @@ function addSpecificUnit(p,unitIMEI){
   if(!productIsIMEITracked(p))return add(p);
   if(!unitIMEI)return alert('No IMEI/Serial was found for this unit.');
   if(cartHasUnitIMEI(unitIMEI))return alert('This IMEI/Serial is already in the cart.');
-  const name=productDisplayName(p), price=productSellingPrice(p), cost=productCostPrice(p);
+  const name=productDisplayName(p), price=unitSellingPrice(p,unitIMEI), cost=unitCostPrice(p,unitIMEI);
   if(price<=0)return alert('This unit has no valid Selling Price. Please update the inventory unit first.');
   let i=cart.find(x=>String(x.id)===String(p.id));
   if(i){
