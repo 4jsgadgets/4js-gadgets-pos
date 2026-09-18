@@ -762,7 +762,9 @@ function renderStockHistory(){
     let badge=unitType==='Second Hand'?'SECOND HAND':(unitType==='Brand New'?'BRAND NEW':'RECEIVED');
     let badgeClass=unitType==='Second Hand'?'used':'ok';
     let imei=Array.isArray(e.imeis)&&e.imeis.length?e.imeis.join(', '):(e.reference&&String(e.reference).replace(/^IMEI\s*/i,'')||'');
-    return `<div class="stockCard"><div class="stockCardTop"><div><b>${esc(e.product||'Unnamed Unit')}</b><div class="sub small">${esc(e.date||'')}</div></div><span class="tag ${badgeClass}">${badge}</span></div><div class="stockMeta"><div><span>IMEI / Serial</span><b>${esc(imei||'-')}</b></div><div><span>Cost</span><b>${money(e.cost||0)}</b></div><div><span>Selling</span><b>${money(e.price||0)}</b></div><div><span>Stock</span><b>1</b></div></div></div>`;
+    const linked=products.find(p=>String(p.id)===String(e.productId));
+    const selling=(e.price!==undefined&&e.price!==null&&e.price!=='')?Number(e.price):(linked?Number(linked.price||linked.sellingPrice||0):0);
+    return `<div class="stockCard"><div class="stockCardTop"><div><b>${esc(e.product||'Unnamed Unit')}</b><div class="sub small">${esc(e.date||'')}</div></div><span class="tag ${badgeClass}">${badge}</span></div><div class="stockMeta"><div><span>IMEI / Serial</span><b>${esc(imei||'-')}</b></div><div><span>Cost</span><b>${money(e.cost||0)}</b></div><div><span>Selling</span><b>${money(selling)}</b></div><div><span>Stock</span><b>1</b></div></div></div>`;
   }).join('')+'</div>':'<p class="sub">No stock-in records yet.</p>';
 }
 function findProduct(code){let c=String(code||'').trim().toLowerCase();return products.find(p=>[p.sku,p.imei,p.model].some(v=>String(v||'').toLowerCase()===c))||products.find(p=>[p.sku,p.imei,p.model,p.brand].some(v=>String(v||'').toLowerCase().includes(c)))}
