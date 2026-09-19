@@ -192,7 +192,7 @@
 .inv-unit-imei{margin-top:15px;padding:12px;border-radius:12px;background:rgba(255,255,255,.035)}
 .inv-unit-imei span,.inv-unit-details span{display:block;color:#9eaaa2;font-size:12px;margin-bottom:4px}.inv-unit-imei b{font-size:15px;word-break:break-all}
 .inv-unit-details{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.inv-unit-details>div{padding:10px 0;border-top:1px solid rgba(255,255,255,.07)}
-.inv-unit-details b{font-size:16px}.inv-unit-actions{display:flex;gap:8px;margin-top:14px}.inv-unit-actions .btn{flex:1}
+.inv-unit-details b{font-size:16px}.inv-unit-actions{margin-top:14px}.inv-unit-actions .btn{width:100%}
 @media(max-width:600px){.inv-unit-grid{grid-template-columns:1fr}.inv-unit-card{padding:16px}.inv-unit-name{font-size:18px}.inv-unit-actions{flex-direction:column}.inv-unit-actions .btn{width:100%}}
 </style>
 </head><body>
@@ -204,7 +204,7 @@
 <div style="margin-top:8px"><label class="sub small">Customer (optional)</label><select id="saleCustomer" style="width:100%" onchange="renderCart()"><option value="">Walk-in Customer</option></select></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div><label class="sub small">Discount</label><input id="discount" type="number" min="0" value="0" placeholder="₱0.00" oninput="renderCart()"></div><div><label class="sub small">Cash Received</label><input id="cashReceived" type="number" min="0" value="0" placeholder="₱0.00" oninput="renderCart()"></div></div><div id="changeDue" class="sub" style="margin-top:6px;text-align:right">Change: ₱0.00</div><div class="paygrid" style="margin-top:10px"><button class="pay active" onclick="pay(this,'Cash')">💵 Cash</button><button class="pay" onclick="pay(this,'GCash')">🔵 GCash</button><button class="pay" onclick="pay(this,'Maya')">🟢 Maya</button><button class="pay" onclick="pay(this,'Card')">💳 Card</button><button class="pay" onclick="pay(this,'Bank Transfer')">🏦 Bank Transfer</button><button class="pay" onclick="pay(this,'Installment')">▤ Installment</button></div><div id="bankOptions" class="bank-options"><input id="bankName" placeholder="Bank name (BDO, Metrobank, BPI...)" style="width:100%;margin-bottom:7px"><input id="bankReference" placeholder="Bank Transfer Reference Number" style="width:100%"></div><button class="btn greenbtn" style="width:100%;margin-top:10px;padding:14px" onclick="checkout()">▣ Complete Sale</button></div></div></section>
 <section id="products" class="page"><div class="box"><h2>📦 Product Master</h2><div class="sub">Add and manage phones, accessories, tablets and gadgets.</div><div class="toolbar"><input id="sku" placeholder="SKU / Barcode *"><input id="brand" placeholder="Brand *"><input id="model" placeholder="Model *"><input id="variant" placeholder="Storage / RAM / Color"><input id="imei" placeholder="IMEI / Serial (optional)"></div><div class="toolbar"><select id="category"><option>Cellphone</option><option>Tablet</option><option>Accessory</option><option>Gadget</option><option>Other</option></select><input id="supplier" placeholder="Supplier"><input id="cost" type="number" min="0" step="0.01" placeholder="Cost Price *"><input id="price" type="number" min="0" step="0.01" placeholder="Selling Price *"><input id="qty" type="number" min="0" value="1" placeholder="Opening Stock"><input id="minStock" type="number" min="0" value="2" placeholder="Low Stock Alert"></div><div class="toolbar"><label style="display:flex;align-items:center;gap:8px"><input id="serialTracked" type="checkbox" style="width:18px;height:18px"> Track IMEI / Serial</label><button class="btn greenbtn" onclick="saveProduct()">＋ Save Product</button><button class="btn" onclick="clearProductForm()">Clear</button></div><input type="hidden" id="editId"></div><div class="box" style="margin-top:14px"><div class="toolbar"><input id="prodSearch" class="grow" placeholder="Search products..." oninput="renderMaster()"><select id="prodCategory" onchange="renderMaster()"><option value="">All Categories</option><option>Cellphone</option><option>Tablet</option><option>Accessory</option><option>Gadget</option><option>Other</option></select></div><div id="master"></div></div></section>
-<section id="inventory" class="page"><div class="box"><h2>📊 Inventory</h2><div class="toolbar"><input id="invSearch" class="grow" placeholder="Search inventory..." oninput="renderInventory()"><select id="invFilter" onchange="renderInventory()"><option value="">All Status</option><option value="ok">In Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div><div id="inventoryList"></div></div></section>
+<section id="inventory" class="page"><div class="box"><h2>📊 Inventory</h2><div class="toolbar"><input id="invSearch" class="grow" placeholder="Search inventory..." oninput="renderInventory()"><select id="invBrandFilter" onchange="renderInventory()"><option value="">All Brands</option></select><select id="invCategoryFilter" onchange="renderInventory()"><option value="">All Categories</option></select><select id="invFilter" onchange="renderInventory()"><option value="">All Status</option><option value="ok">In Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div><div id="inventoryList"></div></div></section>
 <section id="stockin" class="page">
 <div class="box">
   <h2>＋ Stock In</h2>
@@ -489,7 +489,16 @@ function status(p){return p.stock<=0?'out':p.stock<=p.min?'low':'ok'}
 function statusTag(p){let s=status(p);return `<span class="tag ${s}">${s==='out'?'OUT OF STOCK':s==='low'?'LOW STOCK':'IN STOCK'}</span>`}
 function renderMaster(){let q=($('prodSearch')?.value||'').toLowerCase(),c=$('prodCategory')?.value||'';let arr=products.filter(p=>(!q||[p.sku,p.brand,p.model,p.variant,p.imei,p.supplier].join(' ').toLowerCase().includes(q))&&(!c||p.category===c));$('master').innerHTML=arr.length?`<div class="tablewrap"><table class="table"><tr><th>SKU</th><th>Product</th><th>IMEI/Serial</th><th>Cost</th><th>Price</th><th>Stock</th><th>Status</th><th>Action</th></tr>${arr.map(p=>`<tr><td><b>${esc(p.sku)}</b></td><td>${esc(p.brand)} ${esc(p.model)}<br><span class="sub small">${esc(p.variant)} • ${esc(p.category)}</span></td><td>${getProductUnitIMEIs(p).length?getProductUnitIMEIs(p).map(esc).join('<br>'):esc(p.imei||'-')}</td><td>${money(p.cost)}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${statusTag(p)}</td><td><button class="btn" onclick="editProduct('${p.id}')">Edit</button> <button class="btn red" onclick="deleteProduct('${p.id}')">Delete</button></td></tr>`).join('')}</table></div>`:'<p class="sub">No products yet.</p>'}
 function renderInventory(){
-  let q=($('invSearch')?.value||'').toLowerCase().trim(), f=$('invFilter')?.value||'';
+  const q=($('invSearch')?.value||'').toLowerCase().trim();
+  const f=$('invFilter')?.value||'';
+  const brandFilter=$('invBrandFilter')?.value||'';
+  const categoryFilter=$('invCategoryFilter')?.value||'';
+  const brands=[...new Set(products.map(p=>String(p.brand||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const categories=[...new Set(products.map(p=>String(p.category||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  if($('invBrandFilter')) $('invBrandFilter').innerHTML='<option value="">All Brands</option>'+brands.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  if($('invCategoryFilter')) $('invCategoryFilter').innerHTML='<option value="">All Categories</option>'+categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  if($('invBrandFilter')) $('invBrandFilter').value=brandFilter;
+  if($('invCategoryFilter')) $('invCategoryFilter').value=categoryFilter;
   let units=[];
   products.forEach(p=>{
     const totalStock=Math.max(0,Number(p.stock)||0);
@@ -507,7 +516,7 @@ function renderInventory(){
   });
   let arr=units.filter(u=>{
     let st=u.stock<=0?'out':(u.stock<=(Number(u.p.min)||0)?'low':'ok');
-    return (!q||u.search.includes(q))&&(!f||st===f);
+    return (!q||u.search.includes(q))&&(!brandFilter||String(u.p.brand||'')===brandFilter)&&(!categoryFilter||String(u.p.category||'')===categoryFilter)&&(!f||st===f);
   });
   $('inventoryList').innerHTML=arr.length?`<div class="inv-unit-grid">${arr.map(u=>{
     let p=u.p, type=u.type, imei=u.imei||'Not assigned', st=u.stock;
@@ -520,9 +529,37 @@ function renderInventory(){
         <div><span>Stock</span><b>${st}</b></div>
         <div><span>Status</span>${statusTag({ ...p, stock:st })}</div>
       </div>
-      <div class="inv-unit-actions"><button class="btn" onclick="adjustStock('${p.id}',-1)">− Stock</button><button class="btn greenbtn" onclick="adjustStock('${p.id}',1)">＋ Stock</button></div>
+      <div class="inv-unit-actions"><button class="btn red" onclick="deleteInventoryUnit('${p.id}',${u.imei?`'${String(u.imei).replace(/'/g,"\\'")}'`:"''"})">🗑 Delete</button></div>
     </div>`;
   }).join('')}</div>`:'<p class="sub">No inventory records.</p>';
+}
+
+
+function deleteInventoryUnit(id,imei){
+  if(!requireAdmin()) return;
+  const p=products.find(x=>String(x.id)===String(id));
+  if(!p) return alert('Inventory unit not found.');
+  const shown=imei ? ('IMEI / Serial: '+imei) : 'this unassigned stock unit';
+  if(!confirm('Delete '+shown+' from Inventory?\n\nThis will reduce the stock by 1 and cannot be undone.')) return;
+
+  if(imei){
+    if(Array.isArray(p.imeis)){
+      const n=normalizeUnitCode(imei);
+      const idx=p.imeis.findIndex(x=>normalizeUnitCode(x)===n);
+      if(idx<0) return alert('IMEI / Serial not found.');
+      p.imeis.splice(idx,1);
+    }else if(String(p.imei||'').trim()){
+      if(normalizeUnitCode(p.imei)!==normalizeUnitCode(imei)) return alert('IMEI / Serial not found.');
+      p.imei='';
+    }else{
+      return alert('IMEI / Serial not found.');
+    }
+  }
+  p.stock=Math.max(0,(Number(p.stock)||0)-1);
+  save();
+  logActivity('Inventory Unit Deleted',(p.brand||'')+' '+(p.model||'')+(imei?' • IMEI '+imei:''));
+  renderAll();
+  toast('Inventory unit deleted.');
 }
 
 function adjustStock(id,d){let p=products.find(x=>String(x.id)===String(id));if(!p)return;p.stock=Math.max(0,p.stock+d);save();renderAll()}
