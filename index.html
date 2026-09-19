@@ -82,6 +82,20 @@
 .activity-item:last-child{border-bottom:0}
 .rolepill{display:inline-block;padding:4px 8px;border-radius:999px;background:#17381c;color:#75ed83;font-size:11px;font-weight:900}
 @media(max-width:900px){#userAdminGrid{grid-template-columns:1fr!important}.loginbox{padding:20px}}
+
+  .inv-summary-title{font-size:20px;font-weight:800;margin:0 0 10px}
+  .inv-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+  .inv-summary-card{background:#07130b;border:1px solid #1d4d2a;border-radius:18px;padding:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}
+  .inv-summary-brand{font-size:20px;font-weight:900;margin-bottom:8px}
+  .inv-summary-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;color:#b7c0ba}
+  .inv-summary-row b{color:#fff}
+  .inv-summary-total{margin-top:8px;padding-top:10px;border-top:1px solid #21492b;display:flex;justify-content:space-between;font-weight:900}
+  .inv-summary-table-wrap{overflow:auto;margin-top:14px}
+  .inv-summary-table{width:100%;border-collapse:collapse;min-width:620px}
+  .inv-summary-table th,.inv-summary-table td{padding:10px;border-bottom:1px solid #1a3020;text-align:left}
+  .inv-summary-table th{color:#aeb8b1;font-size:13px;text-transform:uppercase}
+  .inv-summary-table td{font-weight:700}
+  .inv-summary-note{margin:0 0 10px;color:#9aa69e;font-size:13px}
 </style>
 </style>
 </style><style>
@@ -204,7 +218,7 @@
 <div style="margin-top:8px"><label class="sub small">Customer (optional)</label><select id="saleCustomer" style="width:100%" onchange="renderCart()"><option value="">Walk-in Customer</option></select></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div><label class="sub small">Discount</label><input id="discount" type="number" min="0" value="0" placeholder="₱0.00" oninput="renderCart()"></div><div><label class="sub small">Cash Received</label><input id="cashReceived" type="number" min="0" value="0" placeholder="₱0.00" oninput="renderCart()"></div></div><div id="changeDue" class="sub" style="margin-top:6px;text-align:right">Change: ₱0.00</div><div class="paygrid" style="margin-top:10px"><button class="pay active" onclick="pay(this,'Cash')">💵 Cash</button><button class="pay" onclick="pay(this,'GCash')">🔵 GCash</button><button class="pay" onclick="pay(this,'Maya')">🟢 Maya</button><button class="pay" onclick="pay(this,'Card')">💳 Card</button><button class="pay" onclick="pay(this,'Bank Transfer')">🏦 Bank Transfer</button><button class="pay" onclick="pay(this,'Installment')">▤ Installment</button></div><div id="bankOptions" class="bank-options"><input id="bankName" placeholder="Bank name (BDO, Metrobank, BPI...)" style="width:100%;margin-bottom:7px"><input id="bankReference" placeholder="Bank Transfer Reference Number" style="width:100%"></div><button class="btn greenbtn" style="width:100%;margin-top:10px;padding:14px" onclick="checkout()">▣ Complete Sale</button></div></div></section>
 <section id="products" class="page"><div class="box"><h2>📦 Product Master</h2><div class="sub">Add and manage cellphones, accessories, tablets and gadgets.</div><div class="toolbar"><input id="sku" placeholder="SKU / Barcode *"><input id="brand" placeholder="Brand *"><input id="model" placeholder="Model *"><input id="variant" placeholder="Storage / RAM / Color"><input id="imei" placeholder="IMEI / Serial (optional)"></div><div class="toolbar"><select id="category"><option>Cellphone</option><option>Tablet</option><option>Accessory</option><option>Gadget</option><option>Other</option></select><input id="supplier" placeholder="Supplier"><input id="cost" type="number" min="0" step="0.01" placeholder="Cost Price *"><input id="price" type="number" min="0" step="0.01" placeholder="Selling Price *"><input id="qty" type="number" min="0" value="1" placeholder="Opening Stock"><input id="minStock" type="number" min="0" value="2" placeholder="Low Stock Alert"></div><div class="toolbar"><label style="display:flex;align-items:center;gap:8px"><input id="serialTracked" type="checkbox" style="width:18px;height:18px"> Track IMEI / Serial</label><button class="btn greenbtn" onclick="saveProduct()">＋ Save Product</button><button class="btn" onclick="clearProductForm()">Clear</button></div><input type="hidden" id="editId"></div><div class="box" style="margin-top:14px"><div class="toolbar"><input id="prodSearch" class="grow" placeholder="Search products..." oninput="renderMaster()"><select id="prodCategory" onchange="renderMaster()"><option value="">All Categories</option><option>Cellphone</option><option>Tablet</option><option>Accessory</option><option>Gadget</option><option>Other</option></select></div><div id="master"></div></div></section>
-<section id="inventory" class="page"><div class="box"><h2>📊 Inventory</h2><div class="toolbar"><input id="invSearch" class="grow" placeholder="Search inventory..." oninput="renderInventory()"><select id="invBrandFilter" onchange="renderInventory()"><option value="">All Brands</option></select><select id="invCategoryFilter" onchange="renderInventory()"><option value="">All Categories</option></select><select id="invFilter" onchange="renderInventory()"><option value="">All Status</option><option value="ok">In Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div><div class="sub small" style="margin-top:8px">Category = <b>Brand New / Second Hand</b>. Brand is filtered separately. Every physical unit/IMEI is shown as its own inventory record.</div><div id="inventoryList"></div></div></section>
+<section id="inventory" class="page"><div class="box"><h2>📊 Inventory</h2><div class="toolbar"><input id="invSearch" class="grow" placeholder="Search inventory..." oninput="renderInventory()"><select id="invBrandFilter" onchange="renderInventory()"><option value="">All Brands</option></select><select id="invCategoryFilter" onchange="renderInventory()"><option value="">All Categories</option></select><select id="invFilter" onchange="renderInventory()"><option value="">All Status</option><option value="ok">In Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div><div class="sub small" style="margin-top:8px">Category = <b>Brand New / Second Hand</b>. Brand is filtered separately. Every physical unit/IMEI is shown as its own inventory record.</div><div id="inventoryBrandSummary" style="margin-top:14px"></div><div id="inventoryList"></div></div></section>
 <section id="stockin" class="page">
 <div class="box">
   <h2>＋ Stock In</h2>
@@ -512,6 +526,47 @@ function deleteProduct(id){if(!requireAdmin())return;if(!confirm('Delete this pr
 function status(p){return p.stock<=0?'out':p.stock<=p.min?'low':'ok'}
 function statusTag(p){let s=status(p);return `<span class="tag ${s}">${s==='out'?'OUT OF STOCK':s==='low'?'LOW STOCK':'IN STOCK'}</span>`}
 function renderMaster(){let q=($('prodSearch')?.value||'').toLowerCase(),c=$('prodCategory')?.value||'';let arr=products.filter(p=>(!q||[p.sku,p.brand,p.model,p.variant,p.imei,p.supplier].join(' ').toLowerCase().includes(q))&&(!c||p.category===c));$('master').innerHTML=arr.length?`<div class="tablewrap"><table class="table"><tr><th>SKU</th><th>Product</th><th>IMEI/Serial</th><th>Cost</th><th>Price</th><th>Stock</th><th>Status</th><th>Action</th></tr>${arr.map(p=>`<tr><td><b>${esc(p.sku)}</b></td><td>${esc(p.brand)} ${esc(p.model)}<br><span class="sub small">${esc(p.variant)} • ${esc(p.category)}</span></td><td>${getProductUnitIMEIs(p).length?getProductUnitIMEIs(p).map(esc).join('<br>'):esc(p.imei||'-')}</td><td>${money(p.cost)}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${statusTag(p)}</td><td><button class="btn" onclick="editProduct('${p.id}')">Edit</button> <button class="btn red" onclick="deleteProduct('${p.id}')">Delete</button></td></tr>`).join('')}</table></div>`:'<p class="sub">No products yet.</p>'}
+function renderInventoryBrandSummary(){
+  const box=$('inventoryBrandSummary');
+  if(!box) return;
+  const map={};
+  products.forEach(p=>{
+    const brand=String(p.brand||'').trim()||'Unbranded';
+    const total=Math.max(0,Number(p.stock)||0);
+    const im=getProductUnitIMEIs(p);
+    const unitType=String(p.unitType||p.condition||(String(p.category||'').trim()==='Cellphone'?'Brand New':p.category)||'').trim()||'Other';
+    if(!map[brand]) map[brand]={brand,units:0,cost:0,sales:0,profit:0,brandNew:0,secondHand:0,other:0};
+    for(let i=0;i<total;i++){
+      const imei=im[i]||'';
+      const cost=Number(imei?unitCostPrice(p,imei):p.cost)||0;
+      const price=Number(imei?unitSellingPrice(p,imei):p.price)||0;
+      const type=unitType.toLowerCase();
+      map[brand].units++;
+      map[brand].cost+=cost;
+      map[brand].sales+=price;
+      map[brand].profit+=Math.max(0,price-cost);
+      if(type==='brand new') map[brand].brandNew++;
+      else if(type==='second hand') map[brand].secondHand++;
+      else map[brand].other++;
+    }
+  });
+  const rows=Object.values(map).filter(x=>x.units>0).sort((a,b)=>a.brand.localeCompare(b.brand));
+  if(!rows.length){box.innerHTML='';return;}
+  const total=rows.reduce((a,r)=>({units:a.units+r.units,cost:a.cost+r.cost,sales:a.sales+r.sales,profit:a.profit+r.profit,brandNew:a.brandNew+r.brandNew,secondHand:a.secondHand+r.secondHand}),{units:0,cost:0,sales:0,profit:0,brandNew:0,secondHand:0});
+  box.innerHTML=`<div class="inv-summary-title">📦 Inventory Summary by Brand</div>
+    <div class="inv-summary-note">Shows current in-stock units only. Potential sales and potential profit are based on each unit's current selling price and cost.</div>
+    <div class="inv-summary-grid">${rows.map(r=>`<div class="inv-summary-card">
+      <div class="inv-summary-brand">${esc(r.brand)}</div>
+      <div class="inv-summary-row"><span>Brand New</span><b>${r.brandNew}</b></div>
+      <div class="inv-summary-row"><span>Second Hand</span><b>${r.secondHand}</b></div>
+      ${r.other?`<div class="inv-summary-row"><span>Other</span><b>${r.other}</b></div>`:''}
+      <div class="inv-summary-total"><span>Total Units</span><span>${r.units}</span></div>
+      <div class="inv-summary-row"><span>Total Cost</span><b>${money(r.cost)}</b></div>
+      <div class="inv-summary-row"><span>Potential Sales</span><b>${money(r.sales)}</b></div>
+      <div class="inv-summary-row"><span>Potential Profit</span><b>${money(r.profit)}</b></div>
+    </div>`).join('')}</div>
+    <div class="inv-summary-table-wrap"><table class="inv-summary-table"><tr><th>Brand</th><th>Units</th><th>Brand New</th><th>Second Hand</th><th>Total Cost</th><th>Potential Sales</th><th>Potential Profit</th></tr>${rows.map(r=>`<tr><td>${esc(r.brand)}</td><td>${r.units}</td><td>${r.brandNew}</td><td>${r.secondHand}</td><td>${money(r.cost)}</td><td>${money(r.sales)}</td><td>${money(r.profit)}</td></tr>`).join('')}<tr><td><b>ALL BRANDS</b></td><td>${total.units}</td><td>${total.brandNew}</td><td>${total.secondHand}</td><td>${money(total.cost)}</td><td>${money(total.sales)}</td><td>${money(total.profit)}</td></tr></table></div>`;
+}
 function renderInventory(){
   const q=($('invSearch')?.value||'').toLowerCase().trim();
   const f=$('invFilter')?.value||'';
@@ -557,6 +612,7 @@ function renderInventory(){
       <div class="inv-unit-actions"><button class="btn red" onclick="deleteInventoryUnit('${p.id}',${u.imei?`'${String(u.imei).replace(/'/g,"\\'")}'`:"''"})">🗑 Delete</button></div>
     </div>`;
   }).join('')}</div>`:'<p class="sub">No inventory records.</p>';
+  renderInventoryBrandSummary();
 }
 
 
