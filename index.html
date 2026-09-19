@@ -204,7 +204,7 @@
 <div style="margin-top:8px"><label class="sub small">Customer (optional)</label><select id="saleCustomer" style="width:100%" onchange="renderCart()"><option value="">Walk-in Customer</option></select></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div><label class="sub small">Discount</label><input id="discount" type="number" min="0" value="0" placeholder="₱0.00" oninput="renderCart()"></div><div><label class="sub small">Cash Received</label><input id="cashReceived" type="number" min="0" value="0" placeholder="₱0.00" oninput="renderCart()"></div></div><div id="changeDue" class="sub" style="margin-top:6px;text-align:right">Change: ₱0.00</div><div class="paygrid" style="margin-top:10px"><button class="pay active" onclick="pay(this,'Cash')">💵 Cash</button><button class="pay" onclick="pay(this,'GCash')">🔵 GCash</button><button class="pay" onclick="pay(this,'Maya')">🟢 Maya</button><button class="pay" onclick="pay(this,'Card')">💳 Card</button><button class="pay" onclick="pay(this,'Bank Transfer')">🏦 Bank Transfer</button><button class="pay" onclick="pay(this,'Installment')">▤ Installment</button></div><div id="bankOptions" class="bank-options"><input id="bankName" placeholder="Bank name (BDO, Metrobank, BPI...)" style="width:100%;margin-bottom:7px"><input id="bankReference" placeholder="Bank Transfer Reference Number" style="width:100%"></div><button class="btn greenbtn" style="width:100%;margin-top:10px;padding:14px" onclick="checkout()">▣ Complete Sale</button></div></div></section>
 <section id="products" class="page"><div class="box"><h2>📦 Product Master</h2><div class="sub">Add and manage phones, accessories, tablets and gadgets.</div><div class="toolbar"><input id="sku" placeholder="SKU / Barcode *"><input id="brand" placeholder="Brand *"><input id="model" placeholder="Model *"><input id="variant" placeholder="Storage / RAM / Color"><input id="imei" placeholder="IMEI / Serial (optional)"></div><div class="toolbar"><select id="category"><option>Brand New</option><option>Tablet</option><option>Accessory</option><option>Gadget</option><option>Other</option></select><input id="supplier" placeholder="Supplier"><input id="cost" type="number" min="0" step="0.01" placeholder="Cost Price *"><input id="price" type="number" min="0" step="0.01" placeholder="Selling Price *"><input id="qty" type="number" min="0" value="1" placeholder="Opening Stock"><input id="minStock" type="number" min="0" value="2" placeholder="Low Stock Alert"></div><div class="toolbar"><label style="display:flex;align-items:center;gap:8px"><input id="serialTracked" type="checkbox" style="width:18px;height:18px"> Track IMEI / Serial</label><button class="btn greenbtn" onclick="saveProduct()">＋ Save Product</button><button class="btn" onclick="clearProductForm()">Clear</button></div><input type="hidden" id="editId"></div><div class="box" style="margin-top:14px"><div class="toolbar"><input id="prodSearch" class="grow" placeholder="Search products..." oninput="renderMaster()"><select id="prodCategory" onchange="renderMaster()"><option value="">All Categories</option><option>Brand New</option><option>Tablet</option><option>Accessory</option><option>Gadget</option><option>Other</option></select></div><div id="master"></div></div></section>
-<section id="inventory" class="page"><div class="box"><h2>📊 Inventory</h2><div class="toolbar"><input id="invSearch" class="grow" placeholder="Search inventory..." oninput="renderInventory()"><select id="invBrandFilter" onchange="renderInventory()"><option value="">All Brands</option></select><select id="invCategoryFilter" onchange="renderInventory()"><option value="">All Categories</option></select><select id="invFilter" onchange="renderInventory()"><option value="">All Status</option><option value="ok">In Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div><div id="inventoryList"></div></div></section>
+<section id="inventory" class="page"><div class="box"><h2>📊 Inventory</h2><div class="toolbar"><input id="invSearch" class="grow" placeholder="Search inventory..." oninput="renderInventory()"><select id="invBrandFilter" onchange="renderInventory()"><option value="">All Brands</option></select><select id="invCategoryFilter" onchange="renderInventory()"><option value="">All Categories</option></select><select id="invFilter" onchange="renderInventory()"><option value="">All Status</option><option value="ok">In Stock</option><option value="low">Low Stock</option><option value="out">Out of Stock</option></select></div><div class="sub small" style="margin-top:8px">Category = <b>Brand New / Second Hand</b>. Brand is filtered separately. Every physical unit/IMEI is shown as its own inventory record.</div><div id="inventoryList"></div></div></section>
 <section id="stockin" class="page">
 <div class="box">
   <h2>＋ Stock In</h2>
@@ -240,7 +240,7 @@
   <label>Brand *<input id="quickUnitBrand" placeholder="e.g. Apple"></label>
   <label>Model *<input id="quickUnitModel" placeholder="e.g. iPhone 15"></label>
   <label>Variant / Storage / Color<input id="quickUnitVariant" placeholder="e.g. 128GB / Blue"></label>
-  <label>Category<select id="quickUnitCategory"><option>Brand New</option><option>Tablet</option><option>Other</option></select></label>
+  <label>Product Category<select id="quickUnitCategory"><option value="Cellphone">Cellphone</option><option value="Tablet">Tablet</option><option value="Accessory">Accessory</option><option value="Gadget">Gadget</option><option value="Other">Other</option></select></label>
   <label>Cost Price<input id="quickUnitCost" type="number" min="0" step="0.01" placeholder="Enter cost of this unit"></label>
   <label>Selling Price<input id="quickUnitPrice" type="number" min="0" step="0.01" placeholder="Enter selling price of this unit"></label>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -494,9 +494,10 @@ function renderInventory(){
   const brandFilter=$('invBrandFilter')?.value||'';
   const categoryFilter=$('invCategoryFilter')?.value||'';
   const brands=[...new Set(products.map(p=>String(p.brand||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-  const categories=[...new Set(products.map(p=>String(p.category||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const unitCategoryOf=p=>String(p.unitType||p.condition||(String(p.category||'').trim()==='Cellphone'?'Brand New':p.category)||'').trim();
+  const categories=[...new Set(products.map(unitCategoryOf).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   if($('invBrandFilter')) $('invBrandFilter').innerHTML='<option value="">All Brands</option>'+brands.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
-  if($('invCategoryFilter')) $('invCategoryFilter').innerHTML='<option value="">All Categories</option>'+categories.map(c=>`<option value="${esc(c)}">${esc(c==='Cellphone'?'Brand New':c)}</option>`).join('');
+  if($('invCategoryFilter')) $('invCategoryFilter').innerHTML='<option value="">All Categories</option>'+categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
   if($('invBrandFilter')) $('invBrandFilter').value=brandFilter;
   if($('invCategoryFilter')) $('invCategoryFilter').value=categoryFilter;
   let units=[];
@@ -509,14 +510,14 @@ function renderInventory(){
       const imei=im[idx]||'';
       const cost=imei?unitCostPrice(p,imei):Number(p.cost)||0;
       const price=imei?unitSellingPrice(p,imei):Number(p.price)||0;
-      const type=p.unitType||p.condition||'—';
+      const type=unitCategoryOf(p)||'—';
       const search=[p.sku,p.brand,p.model,p.variant,p.category,type,p.condition,imei,imei?'':'unassigned'].join(' ').toLowerCase();
       units.push({p,imei,stock:1,cost,price,type,search,unitNo:idx+1});
     }
   });
   let arr=units.filter(u=>{
     let st=u.stock<=0?'out':(u.stock<=(Number(u.p.min)||0)?'low':'ok');
-    return (!q||u.search.includes(q))&&(!brandFilter||String(u.p.brand||'')===brandFilter)&&(!categoryFilter||String(u.p.category||'')===categoryFilter)&&(!f||st===f);
+    return (!q||u.search.includes(q))&&(!brandFilter||String(u.p.brand||'')===brandFilter)&&(!categoryFilter||unitCategoryOf(u.p)===categoryFilter)&&(!f||st===f);
   });
   $('inventoryList').innerHTML=arr.length?`<div class="inv-unit-grid">${arr.map(u=>{
     let p=u.p, type=u.type, imei=u.imei||'Not assigned', st=u.stock;
