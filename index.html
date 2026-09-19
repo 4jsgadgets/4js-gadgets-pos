@@ -586,6 +586,7 @@
 <div id="receiptModal" class="modal"><div class="modalbox"><div class="receipt-close" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3>🧾 Sale Receipt</h3><button class="btn red" onclick="closeReceipt()">Close</button></div><div id="receiptContent" class="receipt"></div><div class="receipt-actions"><button class="btn greenbtn" onclick="printReceipt()">🖨 Print Receipt</button><button class="btn" onclick="closeReceipt()">Done</button></div></div></div>
 <script src="https://unpkg.com/@zxing/browser@0.2.1"></script>
 <script>
+let pendingFinancingSale=null;
 let products=JSON.parse(localStorage.getItem('4j_products')||'[]'),sales=JSON.parse(localStorage.getItem('4j_sales')||'[]'),customers=JSON.parse(localStorage.getItem('4j_customers')||'[]'),installments=JSON.parse(localStorage.getItem('4j_installments')||'[]'),cart=[],payment='Cash',scanTarget='sale',camStream=null,scanning=false,scanControls=null,zxingReader=null;
 const $=id=>document.getElementById(id); const money=n=>'₱'+Number(n||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 function isArchivedModel(p){
@@ -1795,11 +1796,18 @@ function checkout(){
     }
   });
   let cust=selectedCustomer();
-  let sale={id:Date.now(),date:new Date().toISOString(),payment,total,discount:disc,cardType:payment==='Card'?selectedCardType:'',customerId:cust?cust.id:'',customerName:cust?cust.name:'',customerPhone:cust?cust.phone:'',cashReceived:payment==='Cash'?cashReceived:0,change:payment==='Cash'?cashReceived-total:0,bank:payment==='Bank Transfer'?$('bankName').value.trim():'',bankReference:payment==='Bank Transfer'?$('bankReference').value.trim():'',items:cart.map(i=>({...i,imeis:[...(i.imeis||[])]}))};
+  let sale={id:Date.now(),date:new Date().toISOString(),payment,total,discount:disc,cardType:payment==='Card'?selectedCardType:'',customerId:cust?cust.id:'',customerName:cust?cust.name:'',customerPhone:cust?cust.phone:'',cashReceived:payment==='Cash'?cashReceived:0,change:payment==='Cash'?cashReceived-total:0,bank:payment==='Bank Transfer'?$('bankName').value.trim():'',bankReference:payment==='Bank Transfer'?$('bankReference').value.trim():'',items:cart.map(i=>({...i,imeis:[...(i.imeis||[])]})),
+    financingCompany:payment==='Installment'?(pendingFinancingSale?.financingCompany||''):'',
+    downpayment:payment==='Installment'?(Number(pendingFinancingSale?.downpayment)||0):0,
+    downpaymentPaymentMethod:payment==='Installment'?(pendingFinancingSale?.downpaymentPaymentMethod||''):'',
+    financedAmount:payment==='Installment'?(Number(pendingFinancingSale?.financedAmount)||0):0,
+    settlementBank:payment==='Installment'?'Metrobank':'',
+    amountReceivedToday:payment==='Installment'?(Number(pendingFinancingSale?.amountReceivedToday)||0):0
+  };
   sale.cashier=currentUserLabel();sales.push(sale);save();logActivity('Sale Completed',money(total)+' • '+payment);
   clearCart();$('discount').value=0;$('cashReceived').value=0;$('bankName').value='';$('bankReference').value='';
   if($('saleCustomer'))$('saleCustomer').value='';
-  payment='Cash';selectedCardType='Credit Card';closeGCashModal();if($('cardType'))$('cardType').value='Credit Card';document.querySelectorAll('.pay').forEach(x=>x.classList.remove('active'));document.querySelector('.pay').classList.add('active');$('bankOptions').style.display='none';$('cardOptions').style.display='none';$('cashReceived').disabled=false;renderAll();showReceipt(sale);
+  payment='Cash';selectedCardType='Credit Card';pendingFinancingSale=null;closeGCashModal();if($('cardType'))$('cardType').value='Credit Card';document.querySelectorAll('.pay').forEach(x=>x.classList.remove('active'));document.querySelector('.pay').classList.add('active');$('bankOptions').style.display='none';$('cardOptions').style.display='none';$('cashReceived').disabled=false;renderAll();showReceipt(sale);
 }
 function renderDashboardSoldUnits(){
   const box=$('dashboardSoldUnits');
@@ -2320,10 +2328,7 @@ function step81Confirm(){
   const dp=Math.max(0,Number(document.getElementById('step81Downpayment').value)||0);
   if(!total || !cart || !cart.length){alert('Walang item sa cart.');return;}
   if(dp>total){alert('Ang downpayment ay hindi puwedeng mas mataas sa total selling price.');return;}
-  const rec={
-    id:'FIN-'+Date.now(),
-    date:new Date().toISOString(),
-    status:'Completed',
+  pendingFinancingSale={
     financingCompany:document.getElementById('step81FinancingCompany').value,
     totalSellingPrice:total,
     downpayment:dp,
@@ -2332,31 +2337,26 @@ function step81Confirm(){
     settlementBank:'Metrobank',
     amountReceivedToday:dp
   };
-  let rows=[];try{rows=JSON.parse(localStorage.getItem('4j_financing_sales')||'[]');}catch(e){}
-  if(!Array.isArray(rows))rows=[];
-  rows.unshift(rec);
-  localStorage.setItem('4j_financing_sales',JSON.stringify(rows.slice(0,1000)));
-  localStorage.setItem('4j_last_financing_sale',JSON.stringify(rec));
-  window.step81FinancingData=rec;
+  payment='Installment';
   closeStep81Financing();
-  alert('Financing sale saved. Received today: '+step81Money(dp)+' via '+step81DownpaymentMethod+'.');
+  checkout();
 }
 </script>
 
-<script id="step81-financing-history">
+<script id="step82-financing-history">
 function renderFinancingSalesHistory(){
   const list=$('salesHistoryList'); if(!list)return;
   let wrap=$('step81FinancingHistory'); if(!wrap){
     wrap=document.createElement('div'); wrap.id='step81FinancingHistory';
     wrap.style.marginTop='18px'; list.insertAdjacentElement('afterend',wrap);
   }
-  let rows=[];try{rows=JSON.parse(localStorage.getItem('4j_financing_sales')||'[]');}catch(e){}
-  if(!Array.isArray(rows)||!rows.length){wrap.innerHTML='';return;}
+  const rows=(sales||[]).filter(r=>!r.voided && r.payment==='Installment');
+  if(!rows.length){wrap.innerHTML='';return;}
   wrap.innerHTML='<h3>📱 Financing Sales</h3>'+rows.map(r=>`
     <div class="card" style="margin:8px 0;padding:14px">
       <b>${esc(r.financingCompany||'-')}</b>
-      <div class="sub small">${esc(new Date(r.date).toLocaleString('en-PH'))}</div>
-      <div style="margin-top:8px">Sale: <b>${money(r.totalSellingPrice)}</b> · Downpayment: <b>${money(r.downpayment)}</b> · ${esc(r.downpaymentPaymentMethod||'-')}</div>
+      <div class="sub small">${esc(new Date(r.date).toLocaleString('en-PH'))} · Transaction #${esc(String(r.id))}</div>
+      <div style="margin-top:8px">Sale: <b>${money(r.total)}</b> · Downpayment: <b>${money(r.downpayment)}</b> · ${esc(r.downpaymentPaymentMethod||'-')}</div>
       <div>Financed/Settlement: <b>${money(r.financedAmount)}</b> · Settlement Bank: <b>Metrobank</b></div>
     </div>`).join('');
 }
