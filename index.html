@@ -496,7 +496,7 @@ function renderInventory(){
   const brands=[...new Set(products.map(p=>String(p.brand||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const categories=[...new Set(products.map(p=>String(p.category||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   if($('invBrandFilter')) $('invBrandFilter').innerHTML='<option value="">All Brands</option>'+brands.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
-  if($('invCategoryFilter')) $('invCategoryFilter').innerHTML='<option value="">All Categories</option>'+categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  if($('invCategoryFilter')) $('invCategoryFilter').innerHTML='<option value="">All Categories</option>'+categories.map(c=>`<option value="${esc(c)}">${esc(c==='Cellphone'?'Brand New':c)}</option>`).join('');
   if($('invBrandFilter')) $('invBrandFilter').value=brandFilter;
   if($('invCategoryFilter')) $('invCategoryFilter').value=categoryFilter;
   let units=[];
