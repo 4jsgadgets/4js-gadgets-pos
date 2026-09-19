@@ -237,7 +237,24 @@
   </div>
   <p class="sub small">New IMEI detected. This is a separate physical unit, so enter this phone's own details. It will NOT select or copy another Product Master item.</p>
   <label>IMEI / Serial<input id="quickUnitIMEI" readonly></label>
-  <label>Brand *<input id="quickUnitBrand" placeholder="e.g. Apple"></label>
+  <label>Brand *
+<select id="quickUnitBrand">
+<option value="Apple">Apple</option>
+<option value="Samsung">Samsung</option>
+<option value="OPPO">OPPO</option>
+<option value="Vivo">Vivo</option>
+<option value="Xiaomi">Xiaomi</option>
+<option value="Realme">Realme</option>
+<option value="Infinix">Infinix</option>
+<option value="Tecno">Tecno</option>
+<option value="Itel">Itel</option>
+<option value="Honor">Honor</option>
+<option value="Huawei">Huawei</option>
+<option value="OnePlus">OnePlus</option>
+<option value="Google">Google</option>
+<option value="Nothing">Nothing</option>
+<option value="Other">Other</option>
+</select></label>
   <label>Model *<input id="quickUnitModel" placeholder="e.g. iPhone 15"></label>
   <label>Variant / Storage / Color<input id="quickUnitVariant" placeholder="e.g. 128GB / Blue"></label>
   <label>Product Category<select id="quickUnitCategory"><option value="Cellphone">Cellphone</option><option value="Tablet">Tablet</option><option value="Accessory">Accessory</option><option value="Gadget">Gadget</option><option value="Other">Other</option></select></label>
