@@ -546,7 +546,7 @@ function renderInventory(){
   $('inventoryList').innerHTML=arr.length?`<div class="inv-unit-grid">${arr.map(u=>{
     let p=u.p, type=u.type, imei=u.imei||'Not assigned', st=u.stock;
     return `<div class="inv-unit-card">
-      <div class="inv-unit-top"><div><div class="inv-unit-name">${esc((p.brand||'')+' '+(p.model||''))}</div><div class="sub">${esc(p.variant||'')} • Unit ${u.unitNo}</div></div><div class="inv-unit-type">${esc(type)}</div></div>
+      <div class="inv-unit-top"><div><div class="inv-unit-name">${esc((p.brand||'')+' '+(p.model||''))}</div><div class="sub">${esc(p.variant||'')} • Unit ${u.unitNo}</div><div class="sub">Product Category: ${esc(p.category||'—')}</div></div><div class="inv-unit-type">${esc(type)}</div></div>
       <div class="inv-unit-imei"><span>IMEI / Serial</span><b>${esc(imei)}</b></div>
       <div class="inv-unit-details">
         <div><span>Cost</span><b>${money(u.cost)}</b></div>
@@ -998,12 +998,12 @@ function resolveUnitPrices(p, imei){
   return {price:Number(price)||0,cost:Number(cost)||0};
 }
 function unitSellingPrice(p, imei){
-  const direct=productSellingPrice(p);
-  return direct>0 ? direct : getUnitPriceFromHistory(imei,'price');
+  const history=imei?getUnitPriceFromHistory(imei,'price'):0;
+  return history>0 ? history : productSellingPrice(p);
 }
 function unitCostPrice(p, imei){
-  const direct=productCostPrice(p);
-  return direct>0 ? direct : getUnitPriceFromHistory(imei,'cost');
+  const history=imei?getUnitPriceFromHistory(imei,'cost'):0;
+  return history>0 ? history : productCostPrice(p);
 }
 function cartHasUnitIMEI(code){
   let n=normalizeUnitCode(code);
@@ -1487,7 +1487,7 @@ function renderReports(){
 
   $('reportsList').innerHTML=salesHtml+stockHtml+instHtml+outHtml;
 }
-function renderAll(){let today=new Date().toDateString(),ts=sales.filter(s=>!s.voided&&new Date(s.date).toDateString()===today),ss=ts.reduce((a,s)=>a+s.total,0),it=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+i.qty,0),0),pr=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0)-s.discount,0);let iv=0,stockUnits=0;products.forEach(p=>{let total=Math.max(0,Number(p.stock)||0),im=getProductUnitIMEIs(p);stockUnits+=total;for(let idx=0;idx<total;idx++){let imei=im[idx]||'',c=imei?unitCostPrice(p,imei):(Number(p.cost)||0);iv+=Number(c)||0;}});$('dSales').textContent=money(ss);$('dProfit').textContent=money(pr);$('dItems').textContent=it;$('dInv').textContent=money(iv);$('dTx').textContent=ts.length+' transaction(s)';$('dStock').textContent=stockUnits+' units';renderDashboardProducts();renderSaleProducts();renderMaster();renderInventory();renderReports();renderCart();renderStockHistory();renderCustomers();renderCustomerOptions();renderInstallmentOptions();renderInstallments();['instCashPrice','instDown','instMonths'].forEach(id=>{if($(id))$(id).addEventListener('input',updateInstallmentPreview)})}
+function renderAll(){let today=new Date().toDateString(),ts=sales.filter(s=>!s.voided&&new Date(s.date).toDateString()===today),ss=ts.reduce((a,s)=>a+s.total,0),it=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+i.qty,0),0),pr=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0)-s.discount,0);let iv=0,stockUnits=0;products.forEach(p=>{let total=Math.max(0,Number(p.stock)||0),im=getProductUnitIMEIs(p);stockUnits+=total;for(let idx=0;idx<total;idx++){let imei=im[idx]||'',c=unitCostPrice(p,imei);iv+=Number(c)||0;}});$('dSales').textContent=money(ss);$('dProfit').textContent=money(pr);$('dItems').textContent=it;$('dInv').textContent=money(iv);$('dTx').textContent=ts.length+' transaction(s)';$('dStock').textContent=stockUnits+' units';renderDashboardProducts();renderSaleProducts();renderMaster();renderInventory();renderReports();renderCart();renderStockHistory();renderCustomers();renderCustomerOptions();renderInstallmentOptions();renderInstallments();['instCashPrice','instDown','instMonths'].forEach(id=>{if($(id))$(id).addEventListener('input',updateInstallmentPreview)})}
 function exportCSV(){let rows=[['Date','Transaction','Status','Payment','Bank','Reference','SKU','Product','Qty','Price','Cost','Total']];sales.forEach(s=>s.items.forEach(i=>rows.push([s.date,s.id,s.voided?'VOIDED':'COMPLETED',s.payment,s.bank||'',s.bankReference||'',i.sku,i.name,i.qty,i.price,i.cost,s.total])));let blob=new Blob([rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='4Js_Gadgets_Sales.csv';a.click()}
 function exportBackup(){if(!requireAdmin())return;let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({products,sales,customers,installments,stockins:JSON.parse(localStorage.getItem('4j_stockins')||'[]'),installmentReceiptSeq:localStorage.getItem('4j_installment_receipt_seq')||'0'},null,2)],{type:'application/json'}));a.download='4Js_Gadgets_POS_Backup.json';a.click()}
 function restoreBackup(e){if(!requireAdmin())return;let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);products=d.products||[];sales=d.sales||[];customers=d.customers||[];installments=d.installments||[];localStorage.setItem('4j_stockins',JSON.stringify(d.stockins||[]));if(d.installmentReceiptSeq!==undefined)localStorage.setItem('4j_installment_receipt_seq',String(d.installmentReceiptSeq));save();renderAll();toast('Backup restored.')}catch(x){alert('Invalid backup file.')}};r.readAsText(f)}
