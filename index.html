@@ -2310,10 +2310,35 @@ function step77ConfirmInstallment(){
     amountReceivedToday:dp,
     createdAt:new Date().toISOString()
   };
-  localStorage.setItem('4j_last_installment_sale',JSON.stringify(data));
-  window.step77InstallmentData=data;
+  const saved=step79SaveInstallmentRecord(data);
+  window.step77InstallmentData=saved;
   closeStep77Installment();
-  alert('Installment details saved. Downpayment received: '+step77Money(dp)+' via '+step77DownpaymentMethod+'.');
+  alert('Installment sale saved. Downpayment received: '+step77Money(dp)+' via '+step77DownpaymentMethod+'. Financed amount: '+step77Money(total-dp)+'.');
+}
+</script>
+
+<script id="step79-installment-sales-record">
+function step79SaveInstallmentRecord(data){
+  const key='4j_installment_sales';
+  let rows=[];
+  try{ rows=JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){ rows=[]; }
+  if(!Array.isArray(rows)) rows=[];
+  const record={
+    id:'INS-'+Date.now(),
+    date:new Date().toISOString(),
+    status:'Completed',
+    financingCompany:data.financingCompany,
+    totalSellingPrice:Number(data.totalSellingPrice)||0,
+    downpayment:Number(data.downpayment)||0,
+    downpaymentPaymentMethod:data.downpaymentPaymentMethod,
+    financedAmount:Number(data.financedAmount)||0,
+    settlementBank:'Metrobank',
+    amountReceivedToday:Number(data.amountReceivedToday)||0
+  };
+  rows.unshift(record);
+  localStorage.setItem(key,JSON.stringify(rows.slice(0,1000)));
+  localStorage.setItem('4j_last_installment_sale',JSON.stringify(record));
+  return record;
 }
 </script>
 </body></html>
