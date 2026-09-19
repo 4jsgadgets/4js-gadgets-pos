@@ -1882,6 +1882,8 @@ function renderSaleProducts(){
   }).join(''):'<p class="sub">No matching products.</p>';
 }
 function voidSale(id){
+  if(!canVoidSale()){alert('Admin or Cashier login required to void a sale.');return;}
+
   if(!requireAdmin())return;
   let sale=sales.find(x=>String(x.id)===String(id));if(!sale)return;
   if(sale.voided)return alert('This transaction is already voided.');
@@ -2359,6 +2361,24 @@ function renderFinancingSalesHistory(){
       <div style="margin-top:8px">Sale: <b>${money(r.total)}</b> · Downpayment: <b>${money(r.downpayment)}</b> · ${esc(r.downpaymentPaymentMethod||'-')}</div>
       <div>Financed/Settlement: <b>${money(r.financedAmount)}</b> · Settlement Bank: <b>Metrobank</b></div>
     </div>`).join('');
+}
+</script>
+
+<script id="step83-cashier-void">
+function step83CurrentRole(){
+  try{
+    if(typeof currentUser!=='undefined' && currentUser){
+      return String(currentUser.role||currentUser.type||currentUser.userRole||'').toLowerCase();
+    }
+  }catch(e){}
+  try{
+    return String(localStorage.getItem('4j_current_role')||localStorage.getItem('4j_user_role')||'').toLowerCase();
+  }catch(e){}
+  return '';
+}
+function canVoidSale(){
+  const role=step83CurrentRole();
+  return role==='admin'||role==='cashier';
 }
 </script>
 </body></html>
