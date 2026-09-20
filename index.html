@@ -2562,8 +2562,15 @@ function step91RefreshDashboard(){
   rows.forEach(s=>{
     const p=String(s.payment||s.paymentMethod||'').trim();
     if(p==='Installment'){
-      sums.Financing+=Number(s.downpayment??s.amountReceivedToday??0)||0;
+      const dp=Number(s.downpayment??s.amountReceivedToday??0)||0;
+      sums.Financing+=dp;
       sums.FinancedAmount+=Number(s.financedAmount||0)||0;
+      const dm=String(s.downpaymentPaymentMethod||'').trim();
+      if(dm==='Cash') sums.Cash+=dp;
+      else if(dm==='GCash') sums.GCash+=dp;
+      else if(dm==='Maya'||dm==='Maya / QR PH'||dm==='QR PH') sums.Maya+=dp;
+      else if(dm==='Bank Transfer') sums.BankTransfer+=dp;
+      else if(dm==='Card') sums.Card+=dp;
     }else{
       const amount=Number(s.total??s.amount??s.grandTotal??0)||0;
       if(p==='Cash')sums.Cash+=amount;
@@ -2624,8 +2631,15 @@ function step92Period(mode){
     if(Array.isArray(s.items))units+=s.items.reduce((a,i)=>a+(Number(i.qty)||1),0);else units+=Number(s.qty||1)||1;
     const p=String(s.payment||s.paymentMethod||'').trim();
     if(p==='Installment'){
-      sums.Financing+=Number(s.downpayment??s.amountReceivedToday??0)||0;
+      const dp=Number(s.downpayment??s.amountReceivedToday??0)||0;
+      sums.Financing+=dp;
       sums.FinancedAmount+=Number(s.financedAmount||0)||0;
+      const dm=String(s.downpaymentPaymentMethod||'').trim();
+      if(dm==='Cash') sums.Cash+=dp;
+      else if(dm==='GCash') sums.GCash+=dp;
+      else if(dm==='Maya'||dm==='Maya / QR PH'||dm==='QR PH') sums.Maya+=dp;
+      else if(dm==='Bank Transfer') sums.BankTransfer+=dp;
+      else if(dm==='Card') sums.Card+=dp;
     }else{
       const a=Number(s.total??s.amount??s.grandTotal??0)||0;
       if(p==='Cash')sums.Cash+=a;
@@ -2674,8 +2688,18 @@ function step93RenderPaymentCards(){
   rows.forEach(s=>{
     const p=String(s.payment||s.paymentMethod||'').trim();
     if(p==='Installment'){
-      sums.Financing += Number(s.downpayment ?? s.amountReceivedToday ?? 0) || 0;
+      const dp=Number(s.downpayment ?? s.amountReceivedToday ?? 0) || 0;
+      sums.Financing += dp;
       sums.FinancedAmount += Number(s.financedAmount ?? 0) || 0;
+
+      // The actual downpayment was received through the selected method,
+      // so reflect it in that payment-method total too.
+      const dm=String(s.downpaymentPaymentMethod||'').trim();
+      if(dm==='Cash') sums.Cash += dp;
+      else if(dm==='GCash') sums.GCash += dp;
+      else if(dm==='Maya' || dm==='Maya / QR PH' || dm==='QR PH') sums.Maya += dp;
+      else if(dm==='Bank Transfer') sums.BankTransfer += dp;
+      else if(dm==='Card') sums.Card += dp;
     }else{
       const a=Number(s.total ?? s.amount ?? s.grandTotal ?? 0) || 0;
       if(p==='Cash') sums.Cash+=a;
