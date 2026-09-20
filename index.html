@@ -412,10 +412,11 @@
         <span class="scannerReady">● Scanner Ready</span>
       </div>
       <div class="stockScanBar">
-        <input id="stockScanCode" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Scan barcode / QR code / IMEI..." onkeydown="if(event.key==='Enter')processStockScan(this.value)">
+        <input id="stockScanCode" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Scan OR type IMEI / Serial / barcode..." onkeydown="if(event.key==='Enter')processStockScan(this.value)">
         <button class="btn greenbtn" onclick="scanCamera('stockin')">📷 Camera</button>
+        <button class="btn" onclick="processStockScan(document.getElementById('stockScanCode').value)">⌨️ Enter Manually</button>
       </div>
-      <div class="stockScanHint">Supports 1D/2D barcode, QR code and IMEI. USB/Bluetooth scanners can also type directly into this field.</div>
+      <div class="stockScanHint">Supports 1D/2D barcode, QR code and IMEI. If the camera/scanner cannot read the IMEI clearly, <b>type the IMEI / Serial manually in the same field</b> and tap “Enter Manually”. USB/Bluetooth scanners are also supported.</div>
       <div id="stockScanStatus" class="stockScanStatus sub"></div>
 <div id="quickAddUnitPanel" class="box" style="display:none;margin-top:12px">
   <h3>📱 Add Scanned Unit</h3>
@@ -427,8 +428,8 @@
     </div>
     <input type="hidden" id="quickUnitType" value="Second Hand">
   </div>
-  <p class="sub small">New IMEI detected. This is a separate physical unit, so enter this phone's own details. It will NOT select or copy another Product Master item.</p>
-  <label>IMEI / Serial<input id="quickUnitIMEI" readonly></label>
+  <p class="sub small">New IMEI detected. You can <b>type or correct the IMEI / Serial manually</b> if the scan is inaccurate. This is a separate physical unit, so enter this phone's own details. It will NOT select or copy another Product Master item.</p>
+  <label>IMEI / Serial *<input id="quickUnitIMEI" type="text" inputmode="text" autocomplete="off" placeholder="Type or correct IMEI / Serial"></label>
   <label>Brand *
 <select id="quickUnitBrand" onchange="quickBrandChanged()">
 <option value="">— Select Brand —</option>
