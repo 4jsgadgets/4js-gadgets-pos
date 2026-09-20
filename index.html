@@ -3264,3 +3264,125 @@ function printEndOfDaySummary(){
   w.document.close();
 }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script id="step108-cloud-setup">
+(function(){
+  const CLOUD_KEY='4j_supabase_config';
+  const CLOUD_SESSION_KEY='4j_cloud_status';
+  const DEFAULT_URL='https://byuqlrwxrvmabvbykcvz.supabase.co';
+  let cloudClient=null;
+
+  function esc(v){return String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));}
+  function getCfg(){try{return JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}')}catch(e){return {}}}
+  function saveCfg(c){localStorage.setItem(CLOUD_KEY,JSON.stringify(c));}
+  function statusText(){return document.getElementById('cloudStatusText')}
+  function setStatus(kind,msg){
+    const el=statusText(); if(!el)return;
+    el.textContent=msg;
+    el.style.color=kind==='ok'?'#38d84b':kind==='err'?'#ff6b6b':'#f3f4f6';
+  }
+  function ensureBox(){
+    const settings=document.getElementById('settings');
+    if(!settings || document.getElementById('step108CloudBox')) return;
+    const box=document.createElement('div');
+    box.className='box'; box.id='step108CloudBox'; box.style.marginBottom='14px';
+    box.innerHTML=`
+      <h2>☁️ Cloud Setup — Supabase</h2>
+      <div class="sub">Step 8: connect this POS to the shared cloud database. Enter the Publishable Key directly here — huwag ipadala ang key sa chat.</div>
+      <div class="card" style="margin-top:12px">
+        <div style="display:grid;grid-template-columns:1fr;gap:10px">
+          <label><b>Supabase Project URL</b><input id="cloudProjectUrl" type="url" value="${esc(DEFAULT_URL)}" placeholder="https://xxxxx.supabase.co" autocomplete="off"></label>
+          <label><b>Supabase Publishable Key</b><input id="cloudPublishableKey" type="password" placeholder="sb_publishable_..." autocomplete="off" spellcheck="false"></label>
+          <div style="font-size:12px;color:#a7b1aa;line-height:1.45">Use the <b>Publishable key</b> (usually starts with <b>sb_publishable_</b>). Do <b>NOT</b> use the Secret key or service_role key. Supabase documents publishable keys for browser apps.</div>
+          <div class="toolbar" style="margin-top:2px">
+            <input id="cloudEmail" type="email" placeholder="Admin email" autocomplete="username">
+            <input id="cloudPassword" type="password" placeholder="Admin password" autocomplete="current-password">
+          </div>
+          <div class="toolbar">
+            <button class="btn greenbtn" onclick="step108SaveAndTestCloud()">☁️ Save & Sign In</button>
+            <button class="btn" onclick="step108TestCloudOnly()">Test Connection</button>
+            <button class="btn" onclick="step108SignOutCloud()">Sign Out</button>
+          </div>
+          <div class="card" style="margin-top:4px;border-color:#263a2b">
+            <b>Cloud Status:</b> <span id="cloudStatusText">Not connected</span>
+          </div>
+        </div>
+      </div>`;
+    const first=settings.querySelector('.box');
+    settings.insertBefore(box,first||settings.firstChild);
+    const c=getCfg();
+    if(c.url) document.getElementById('cloudProjectUrl').value=c.url;
+    if(c.key) document.getElementById('cloudPublishableKey').value=c.key;
+    if(c.email) document.getElementById('cloudEmail').value=c.email;
+    setStatus('info','Not connected');
+    step108RestoreCloudSession();
+  }
+  async function makeClient(){
+    const url=(document.getElementById('cloudProjectUrl')?.value||DEFAULT_URL).trim().replace(/\/$/,'');
+    const key=(document.getElementById('cloudPublishableKey')?.value||'').trim();
+    if(!url) throw new Error('Missing Supabase Project URL.');
+    if(!key) throw new Error('Ilagay muna ang Supabase Publishable Key.');
+    if(!window.supabase || !window.supabase.createClient) throw new Error('Supabase library did not load. Check internet connection.');
+    cloudClient=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    return cloudClient;
+  }
+  window.step108SaveAndTestCloud=async function(){
+    try{
+      const url=(document.getElementById('cloudProjectUrl').value||DEFAULT_URL).trim().replace(/\/$/,'');
+      const key=(document.getElementById('cloudPublishableKey').value||'').trim();
+      const email=(document.getElementById('cloudEmail').value||'').trim();
+      const password=document.getElementById('cloudPassword').value||'';
+      if(!key) throw new Error('Ilagay muna ang Publishable Key.');
+      if(!email || !password) throw new Error('Ilagay ang Admin email at password ng Supabase Auth user.');
+      saveCfg({url,key,email});
+      setStatus('info','Connecting…');
+      const c=await makeClient();
+      const {data,error}=await c.auth.signInWithPassword({email,password});
+      if(error) throw error;
+      const q=await c.from('products').select('id').limit(1);
+      if(q.error) throw q.error;
+      localStorage.setItem(CLOUD_SESSION_KEY,'connected');
+      setStatus('ok','CONNECTED • Admin • Cloud database OK');
+      if(typeof toast==='function') toast('Cloud connected successfully.');
+      document.getElementById('cloudPassword').value='';
+    }catch(e){
+      console.error(e);
+      setStatus('err','Connection failed: '+(e?.message||e));
+      alert('Cloud connection failed:\n\n'+(e?.message||e));
+    }
+  };
+  window.step108TestCloudOnly=async function(){
+    try{
+      setStatus('info','Testing…');
+      const c=await makeClient();
+      const s=await c.auth.getSession();
+      if(!s.data.session){setStatus('err','Client connected, but no Admin session. Use Save & Sign In.');return;}
+      const q=await c.from('products').select('id').limit(1);
+      if(q.error) throw q.error;
+      setStatus('ok','CONNECTED • Signed in • Database OK');
+    }catch(e){setStatus('err','Test failed: '+(e?.message||e));}
+  };
+  window.step108SignOutCloud=async function(){
+    try{
+      if(cloudClient) await cloudClient.auth.signOut();
+      localStorage.removeItem(CLOUD_SESSION_KEY);
+      setStatus('info','Signed out');
+    }catch(e){setStatus('err','Sign out failed: '+(e?.message||e));}
+  };
+  window.step108RestoreCloudSession=async function(){
+    try{
+      const c=getCfg(); if(!c.key)return;
+      const client=await makeClient();
+      const s=await client.auth.getSession();
+      if(s.data.session){
+        const q=await client.from('products').select('id').limit(1);
+        if(!q.error){setStatus('ok','CONNECTED • Session restored • Database OK');return;}
+      }
+      setStatus('info','Cloud configured • Sign in required');
+    }catch(e){setStatus('err','Cloud not connected: '+(e?.message||e));}
+  };
+  document.addEventListener('DOMContentLoaded',()=>{setTimeout(ensureBox,300);});
+  setTimeout(ensureBox,800);
+})();
+</script>
