@@ -2049,6 +2049,7 @@ function renderSalesHistory(){
   renderInstallmentSalesHistory();
 }
 function renderAll(){
+  step89UpdatePaymentSummary();
   step84UpdatePaymentSummary();let today=new Date().toDateString(),ts=sales.filter(s=>!s.voided&&new Date(s.date).toDateString()===today),ss=ts.reduce((a,s)=>a+s.total,0),it=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+i.qty,0),0),pr=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0)-s.discount,0);let iv=0,stockUnits=0;products.filter(p=>!isArchivedModel(p)).forEach(p=>{let total=Math.max(0,Number(p.stock)||0),im=getProductUnitIMEIs(p);stockUnits+=total;for(let idx=0;idx<total;idx++){let imei=im[idx]||'',c=unitCostPrice(p,imei);iv+=Number(c)||0;}});$('dSales').textContent=money(ss);$('dProfit').textContent=money(pr);$('dItems').textContent=it;$('dInv').textContent=money(iv);$('dTx').textContent=ts.length+' transaction(s)';$('dStock').textContent=stockUnits+' units';renderDashboardSoldUnits();updateLowStockDashboard();renderDashboardProducts();renderSaleProducts();renderMaster();renderInventory();renderSalesHistory();renderReports();renderCart();renderStockHistory();renderCustomers();renderCustomerOptions(true);renderInstallmentOptions();renderInstallments();['instCashPrice','instDown','instMonths'].forEach(id=>{if($(id))$(id).addEventListener('input',updateInstallmentPreview)})}
 function exportCSV(){let rows=[['Date','Transaction','Status','Payment','Card Type','Bank','Reference','SKU','Product','Qty','Price','Cost','Total']];sales.forEach(s=>s.items.forEach(i=>rows.push([s.date,s.id,s.voided?'VOIDED':'COMPLETED',s.payment,s.cardType||'',s.bank||'',s.bankReference||'',i.sku,i.name,i.qty,i.price,i.cost,s.total])));let blob=new Blob([rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='4Js_Gadgets_Sales.csv';a.click()}
 function exportBackup(){if(!requireAdmin())return;let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({products,sales,customers,installments,stockins:JSON.parse(localStorage.getItem('4j_stockins')||'[]'),installmentReceiptSeq:localStorage.getItem('4j_installment_receipt_seq')||'0'},null,2)],{type:'application/json'}));a.download='4Js_Gadgets_POS_Backup.json';a.click()}
@@ -2392,42 +2393,68 @@ function renderFinancingSalesHistory(){
 
 
 
-<script id="step84-payment-summary-js">
-function step84SameDay(a,b){
-  const da=new Date(a), db=new Date(b);
-  return da.getFullYear()===db.getFullYear() && da.getMonth()===db.getMonth() && da.getDate()===db.getDate();
+
+<script id="step89-payment-summary-js">
+function step89SameDay(dateValue){
+  const d=new Date(dateValue), n=new Date();
+  return !isNaN(d) && d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate();
 }
-function step84UpdatePaymentSummary(){
+function step89Num(v){const n=Number(v);return isFinite(n)?n:0;}
+function step89PaymentAmount(s){
+  // Normal sale amount
+  return step89Num(s.total ?? s.amount ?? s.grandTotal ?? 0);
+}
+function step89UpdatePaymentSummary(){
   const ids=['step84Cash','step84GCash','step84Maya','step84Bank','step84Card','step84Financing','step85FinancedAmount'];
   ids.forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=money(0);});
+
   let rows=[];
   try{rows=JSON.parse(localStorage.getItem('4j_sales')||'[]');}catch(e){rows=[];}
   if(!Array.isArray(rows))rows=[];
-  const sums={Cash:0,GCash:0,Maya:0,BankTransfer:0,Card:0,Financing:0,FinancedAmount:0};
+
+  const sums={
+    Cash:0, GCash:0, Maya:0, BankTransfer:0, Card:0,
+    Financing:0, FinancedAmount:0
+  };
+
   rows.forEach(s=>{
-    if(s.voided || !s.date || !step84SameDay(s.date,new Date())) return;
-    const payment=String(s.payment||'');
+    if(!s || s.voided || !step89SameDay(s.date)) return;
+
+    const payment=String(s.payment||s.paymentMethod||'').trim();
+
     if(payment==='Installment'){
-      sums.Financing += Number(s.downpayment ?? s.amountReceivedToday ?? 0) || 0;
-      sums.FinancedAmount += Number(s.financedAmount || 0) || 0;
+      // Only the actual downpayment counts as money received today.
+      sums.Financing += step89Num(s.downpayment ?? s.amountReceivedToday ?? 0);
+      sums.FinancedAmount += step89Num(s.financedAmount ?? 0);
       return;
     }
-    const amount=Number(s.total ?? s.amount ?? 0) || 0;
-    if(payment==='Cash')sums.Cash+=amount;
-    else if(payment==='GCash')sums.GCash+=amount;
-    else if(payment==='Maya' || payment==='Maya / QR PH' || payment==='QR PH')sums.Maya+=amount;
-    else if(payment==='Bank Transfer')sums.BankTransfer+=amount;
-    else if(payment==='Card')sums.Card+=amount;
+
+    const amount=step89PaymentAmount(s);
+
+    if(payment==='Cash') sums.Cash+=amount;
+    else if(payment==='GCash') sums.GCash+=amount;
+    else if(payment==='Maya' || payment==='Maya / QR PH' || payment==='QR PH') sums.Maya+=amount;
+    else if(payment==='Bank Transfer') sums.BankTransfer+=amount;
+    else if(payment==='Card') sums.Card+=amount;
   });
-  const map={
-    step84Cash:sums.Cash,step84GCash:sums.GCash,step84Maya:sums.Maya,
-    step84Bank:sums.BankTransfer,step84Card:sums.Card,step84Financing:sums.Financing,step85FinancedAmount:sums.FinancedAmount
+
+  const values={
+    step84Cash:sums.Cash,
+    step84GCash:sums.GCash,
+    step84Maya:sums.Maya,
+    step84Bank:sums.BankTransfer,
+    step84Card:sums.Card,
+    step84Financing:sums.Financing,
+    step85FinancedAmount:sums.FinancedAmount
   };
-  Object.entries(map).forEach(([id,val])=>{
-    const el=document.getElementById(id);if(el)el.textContent=money(val);
+
+  Object.entries(values).forEach(([id,val])=>{
+    const el=document.getElementById(id);
+    if(el)el.textContent=money(val);
   });
 }
 </script>
+
 </body></html>
 <script>
 function userCardAction(){
