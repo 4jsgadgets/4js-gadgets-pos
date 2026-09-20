@@ -351,6 +351,13 @@
     <button class="step91-date-btn secondary" onclick="step91Today()">Today</button>
   </div>
   <div id="step91SelectedDate" class="step91-selected"></div>
+<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+  <button class="step91-date-btn secondary" onclick="step92Period('day')">📅 Daily</button>
+  <button class="step91-date-btn" onclick="step92Period('week')">📆 Weekly</button>
+  <button class="step91-date-btn" onclick="step92Period('month')">🗓️ Monthly</button>
+  <button class="step91-date-btn" onclick="step92Period('year')">📊 Yearly</button>
+</div>
+
 </div>
 
 <div id="step84PaymentSummary" class="step84-payment-summary">
@@ -2583,6 +2590,66 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(label)label.textContent='Showing sales for '+new Date(step91SelectedDate+'T12:00:00').toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
   setTimeout(step91RefreshDashboard,0);
 });
+</script>
+
+<script id="step92-period-js">
+let step92PeriodMode='day';
+function step92StartOfWeek(d){
+  const x=new Date(d); x.setHours(0,0,0,0);
+  const day=x.getDay(); x.setDate(x.getDate()-(day===0?6:day-1));
+  return x;
+}
+function step92InRange(dateValue,mode,target){
+  const d=new Date(dateValue); if(isNaN(d))return false;
+  const t=new Date(target+'T12:00:00');
+  if(mode==='day')return step91LocalISODate(d)===step91LocalISODate(t);
+  if(mode==='week'){
+    const start=step92StartOfWeek(t), end=new Date(start); end.setDate(end.getDate()+7);
+    return d>=start && d<end;
+  }
+  if(mode==='month')return d.getFullYear()===t.getFullYear() && d.getMonth()===t.getMonth();
+  if(mode==='year')return d.getFullYear()===t.getFullYear();
+  return false;
+}
+function step92Period(mode){
+  step92PeriodMode=mode;
+  const target=document.getElementById('step91Date')?.value||step91LocalISODate();
+  const rows=step91GetSales().filter(s=>s&&!s.voided&&step92InRange(s.date,mode,target));
+  let sales=0,profit=0,units=0;
+  const sums={Cash:0,GCash:0,Maya:0,BankTransfer:0,Card:0,Financing:0,FinancedAmount:0};
+  rows.forEach(s=>{
+    sales+=Number(s.total??s.amount??s.grandTotal??0)||0;
+    profit+=Number(s.profit??s.totalProfit??0)||0;
+    if(Array.isArray(s.items))units+=s.items.reduce((a,i)=>a+(Number(i.qty)||1),0);else units+=Number(s.qty||1)||1;
+    const p=String(s.payment||s.paymentMethod||'').trim();
+    if(p==='Installment'){
+      sums.Financing+=Number(s.downpayment??s.amountReceivedToday??0)||0;
+      sums.FinancedAmount+=Number(s.financedAmount||0)||0;
+    }else{
+      const a=Number(s.total??s.amount??s.grandTotal??0)||0;
+      if(p==='Cash')sums.Cash+=a;
+      else if(p==='GCash')sums.GCash+=a;
+      else if(p==='Maya'||p==='Maya / QR PH'||p==='QR PH')sums.Maya+=a;
+      else if(p==='Bank Transfer')sums.BankTransfer+=a;
+      else if(p==='Card')sums.Card+=a;
+    }
+  });
+  const values={step84Cash:sums.Cash,step84GCash:sums.GCash,step84Maya:sums.Maya,step84Bank:sums.BankTransfer,step84Card:sums.Card,step84Financing:sums.Financing,step85FinancedAmount:sums.FinancedAmount};
+  Object.entries(values).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=money(v);});
+
+  // Update main dashboard metric cards without changing the existing layout.
+  document.querySelectorAll('.card').forEach(card=>{
+    const label=(card.querySelector('.label')?.textContent||'').trim().toLowerCase();
+    const val=card.querySelector('.val'); if(!val)return;
+    if(label==="today's sales"||label==='sales')val.textContent=money(sales);
+    else if(label==="today's profit"||label==='profit')val.textContent=money(profit);
+    else if(label==='items sold'||label==='units sold')val.textContent=String(units);
+  });
+
+  const names={day:'Daily',week:'Weekly',month:'Monthly',year:'Yearly'};
+  const label=document.getElementById('step91SelectedDate');
+  if(label)label.textContent=names[mode]+' view • '+rows.length+' transaction(s)';
+}
 </script>
 </body></html>
 <script>
