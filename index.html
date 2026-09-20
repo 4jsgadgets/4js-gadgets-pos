@@ -319,7 +319,7 @@
 .step84-payment-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .step84-payment-card{background:#fff;border:1px solid #dbe4de;border-radius:14px;padding:14px;min-height:86px}
 .step84-payment-label{font-size:12px;color:#64748b;font-weight:800}
-.step84-payment-value{font-size:20px;font-weight:900;margin-top:7px}
+.step84-payment-value{font-size:22px;font-weight:900;margin-top:7px;color:#111827 !important;display:block;min-height:26px;line-height:1.2}
 @media(max-width:900px){.step84-payment-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:520px){.step84-payment-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
@@ -361,7 +361,7 @@
 </div>
 
 <div id="step84PaymentSummary" class="step84-payment-summary">
-  <h3>💳 Today's Sales by Payment Method</h3>
+  <h3>💳 Sales by Payment Method</h3>
   <div class="step84-payment-grid">
     <div class="step84-payment-card"><div class="step84-payment-label">💵 Cash</div><div class="step84-payment-value" id="step84Cash">₱0.00</div></div>
     <div class="step84-payment-card"><div class="step84-payment-label">📱 GCash</div><div class="step84-payment-value" id="step84GCash">₱0.00</div></div>
@@ -2511,6 +2511,7 @@ function step91ApplyDate(){
   const label=document.getElementById('step91SelectedDate');
   if(label)label.textContent='Showing sales for '+new Date(step91SelectedDate+'T12:00:00').toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'});
   step91RefreshDashboard();
+  if(typeof step93RenderSelectedPeriod==='function') step93RenderSelectedPeriod();
 }
 function step91Today(){
   step91SelectedDate=step91LocalISODate();
@@ -2649,7 +2650,82 @@ function step92Period(mode){
   const names={day:'Daily',week:'Weekly',month:'Monthly',year:'Yearly'};
   const label=document.getElementById('step91SelectedDate');
   if(label)label.textContent=names[mode]+' view • '+rows.length+' transaction(s)';
+  if(typeof step93RenderSelectedPeriod==='function') step93RenderSelectedPeriod();
 }
+</script>
+
+<script id="step93-final-dashboard-payment-renderer">
+function step93DateKey(v){
+  const d=new Date(v); if(isNaN(d)) return '';
+  return step91LocalISODate(d);
+}
+function step93RowsForPeriod(){
+  const all=(typeof sales!=='undefined' && Array.isArray(sales)) ? sales : [];
+  const target=document.getElementById('step91Date')?.value || step91LocalISODate();
+  const mode=(typeof step92PeriodMode!=='undefined') ? step92PeriodMode : 'day';
+  return all.filter(s=>{
+    if(!s || s.voided || !s.date) return false;
+    return step92InRange(s.date,mode,target);
+  });
+}
+function step93RenderPaymentCards(){
+  const rows=step93RowsForPeriod();
+  const sums={Cash:0,GCash:0,Maya:0,BankTransfer:0,Card:0,Financing:0,FinancedAmount:0};
+  rows.forEach(s=>{
+    const p=String(s.payment||s.paymentMethod||'').trim();
+    if(p==='Installment'){
+      sums.Financing += Number(s.downpayment ?? s.amountReceivedToday ?? 0) || 0;
+      sums.FinancedAmount += Number(s.financedAmount ?? 0) || 0;
+    }else{
+      const a=Number(s.total ?? s.amount ?? s.grandTotal ?? 0) || 0;
+      if(p==='Cash') sums.Cash+=a;
+      else if(p==='GCash') sums.GCash+=a;
+      else if(p==='Maya'||p==='Maya / QR PH'||p==='QR PH') sums.Maya+=a;
+      else if(p==='Bank Transfer') sums.BankTransfer+=a;
+      else if(p==='Card') sums.Card+=a;
+    }
+  });
+  const map={
+    step84Cash:sums.Cash,
+    step84GCash:sums.GCash,
+    step84Maya:sums.Maya,
+    step84Bank:sums.BankTransfer,
+    step84Card:sums.Card,
+    step84Financing:sums.Financing,
+    step85FinancedAmount:sums.FinancedAmount
+  };
+  Object.entries(map).forEach(([id,v])=>{
+    const el=document.getElementById(id);
+    if(el){
+      el.textContent=money(v);
+      el.style.color='#111827';
+      el.style.display='block';
+      el.style.visibility='visible';
+      el.style.opacity='1';
+    }
+  });
+}
+function step93RenderSelectedPeriod(){
+  const rows=step93RowsForPeriod();
+  let total=0,profit=0,units=0;
+  rows.forEach(s=>{
+    total+=Number(s.total||0)||0;
+    profit+=s.items.reduce((a,i)=>a+(Number(i.price||0)-Number(i.cost||0))*(Number(i.qty)||0),0)-Number(s.discount||0);
+    units+=s.items.reduce((a,i)=>a+(Number(i.qty)||0),0);
+  });
+  const ds=document.getElementById('dSales'), dp=document.getElementById('dProfit'), di=document.getElementById('dItems'), dt=document.getElementById('dTx');
+  if(ds)ds.textContent=money(total);
+  if(dp)dp.textContent=money(profit);
+  if(di)di.textContent=String(units);
+  if(dt)dt.textContent=rows.length+' transaction(s)';
+  step93RenderPaymentCards();
+}
+function step93Refresh(){
+  if(typeof step93RenderSelectedPeriod==='function') step93RenderSelectedPeriod();
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  setTimeout(step93Refresh,100);
+});
 </script>
 </body></html>
 <script>
