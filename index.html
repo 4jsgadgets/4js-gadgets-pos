@@ -3294,6 +3294,70 @@ document.addEventListener('DOMContentLoaded',()=>{
       await upload109();
     }catch(e){console.error(e);setSyncStatus109('Upload failed: '+(e.message||e),false);alert('Cloud upload failed:\n\n'+(e.message||e));}
   };
+
+  function ensureBox110(){
+    const settings=document.getElementById('settings');
+    if(!settings||document.getElementById('step110CloudSyncBox'))return;
+    const box=document.createElement('div');
+    box.className='box'; box.id='step110CloudSyncBox'; box.style.marginBottom='14px';
+    box.innerHTML=`<h2>☁️ Step 10 — Cloud Inventory Sync</h2>
+      <div class="sub">Safe sync check muna: babasahin natin ang Inventory mula sa Supabase Cloud at ipapakita ang aktuwal na cloud stock. Hindi nito binubura o ino-overwrite ang local POS data.</div>
+      <div class="cloud-sync-grid" style="margin-top:12px">
+        <div class="sync-stat"><span class="sub">Cloud Products</span><b id="step110CloudProducts">—</b></div>
+        <div class="sync-stat"><span class="sub">Cloud Inventory Units</span><b id="step110CloudUnits">—</b></div>
+        <div class="sync-stat"><span class="sub">In Stock</span><b id="step110CloudInStock">—</b></div>
+        <div class="sync-stat"><span class="sub">Sold / Other</span><b id="step110CloudOther">—</b></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn greenbtn" onclick="step110RefreshCloudInventory()">☁️ Refresh Cloud Inventory</button>
+      </div>
+      <div id="step110SyncStatus" class="card" style="margin-top:10px;border-color:#263a2b">Status: Ready</div>
+      <div id="step110CloudPreview" style="margin-top:10px"></div>`;
+    const step9=document.getElementById('step109CloudSyncBox');
+    if(step9&&step9.parentNode)step9.parentNode.insertBefore(box,step9.nextSibling);
+    else settings.insertBefore(box,settings.firstChild);
+  }
+  function setSyncStatus110(msg,ok){
+    const e=document.getElementById('step110SyncStatus');
+    if(e){e.textContent='Status: '+msg;e.style.color=ok?'#38d84b':'#fff'}
+  }
+  async function refreshCloudInventory110(){
+    try{
+      setSyncStatus110('Reading cloud inventory…',true);
+      const c=await client109();
+      const [pr,ur]=await Promise.all([
+        c.from('products').select('id,brand,model,storage,ram,color,category,sku,archived').order('brand').order('model'),
+        c.from('inventory_units').select('id,product_id,imei_serial,unit_type,variant,cost_price,selling_price,status,stock_in_at').order('stock_in_at',{ascending:false})
+      ]);
+      if(pr.error)throw pr.error; if(ur.error)throw ur.error;
+      const products=pr.data||[], units=ur.data||[];
+      const pm=new Map(products.map(p=>[p.id,p]));
+      const inStock=units.filter(u=>String(u.status||'').toUpperCase()==='IN_STOCK').length;
+      const other=units.length-inStock;
+      const a=document.getElementById('step110CloudProducts'),b=document.getElementById('step110CloudUnits'),d=document.getElementById('step110CloudInStock'),e=document.getElementById('step110CloudOther');
+      if(a)a.textContent=products.length;if(b)b.textContent=units.length;if(d)d.textContent=inStock;if(e)e.textContent=other;
+      const rows=units.slice(0,100).map(u=>{
+        const p=pm.get(u.product_id)||{};
+        const name=[p.brand,p.model].filter(Boolean).join(' ')||'Unknown Product';
+        const variant=[p.storage,p.ram,p.color,u.variant].filter(Boolean).join(' / ');
+        return `<tr><td>${esc(name)}</td><td>${esc(variant||'—')}</td><td>${esc(u.imei_serial||'—')}</td><td>${esc(u.unit_type||'—')}</td><td>${esc(u.status||'—')}</td></tr>`;
+      }).join('');
+      const preview=document.getElementById('step110CloudPreview');
+      if(preview)preview.innerHTML=`<div class="sub" style="margin-bottom:6px">Showing ${Math.min(units.length,100)} of ${units.length} cloud unit(s).</div>
+        <div style="overflow:auto;max-height:420px;border:1px solid #243128;border-radius:12px">
+        <table style="width:100%;border-collapse:collapse;min-width:720px">
+        <thead><tr><th style="text-align:left;padding:9px">Product</th><th style="text-align:left;padding:9px">Variant</th><th style="text-align:left;padding:9px">IMEI / Serial</th><th style="text-align:left;padding:9px">Type</th><th style="text-align:left;padding:9px">Status</th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="5" style="padding:12px">No cloud inventory units found.</td></tr>'}</tbody></table></div>`;
+      setSyncStatus110('Cloud inventory loaded successfully. Local data unchanged.',true);
+    }catch(e){
+      console.error(e); setSyncStatus110('Cloud read failed: '+(e.message||e),false);
+      alert('Cloud inventory read failed:\n\n'+(e.message||e));
+    }
+  }
+  window.step110RefreshCloudInventory=refreshCloudInventory110;
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureBox110,1050));
+  setTimeout(ensureBox110,1650);
+
   document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureBox109,900));
   setTimeout(ensureBox109,1400);
 })();
