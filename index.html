@@ -3574,3 +3574,175 @@ function printEndOfDaySummary(){
   setTimeout(ensureBox,800);
 })();
 </script>
+
+<style id="step11-cloud-stockin-style">
+#step11CloudStockInBox .step11-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#step11CloudStockInBox .step11-stat{padding:14px;border:1px solid #263a2b;border-radius:12px;background:#09110c}
+#step11CloudStockInBox .step11-stat b{font-size:21px;display:block;margin-top:4px}
+@media(max-width:700px){#step11CloudStockInBox .step11-grid{grid-template-columns:1fr}}
+</style>
+<script id="step11-cloud-stockin">
+(function(){
+  const SYNC_KEY='4j_cloud_stockin_sync_v1';
+  function readSync(){try{return JSON.parse(localStorage.getItem(SYNC_KEY)||'{}')}catch(e){return {}}}
+  function writeSync(v){localStorage.setItem(SYNC_KEY,JSON.stringify(v))}
+  function cfg(){try{return JSON.parse(localStorage.getItem('4j_supabase_config')||'{}')}catch(e){return {}}}
+  async function cloud(){
+    const c=cfg();
+    if(!c.url||!c.key)throw new Error('Cloud Setup is incomplete.');
+    if(!window.supabase?.createClient)throw new Error('Supabase library did not load.');
+    const cl=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const s=await cl.auth.getSession();
+    if(!s.data.session)throw new Error('Cloud Admin session is not active.');
+    return cl;
+  }
+  function esc11(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function setStatus(msg,ok=true){
+    const e=document.getElementById('step11CloudStatus');
+    if(e){e.textContent='Status: '+msg;e.style.color=ok?'#38d84b':'#ff6b6b'}
+  }
+  function ensureBox(){
+    const page=document.getElementById('stockin');
+    if(!page||document.getElementById('step11CloudStockInBox'))return;
+    const box=document.createElement('div');
+    box.className='box';box.id='step11CloudStockInBox';box.style.marginBottom='14px';
+    box.innerHTML=`<h2>☁️ Step 11 — Cloud Stock In</h2>
+      <div class="sub">Kapag nag-Stock In ka, isi-sync din natin ang bagong physical unit sa Supabase Cloud. Local POS data ay mananatili. Existing IMEI units ay ise-set sa <b>IN_STOCK</b> sa cloud.</div>
+      <div class="step11-grid" style="margin-top:12px">
+        <div class="step11-stat"><span class="sub">Local Stock-In Records</span><b id="step11LocalStockins">0</b></div>
+        <div class="step11-stat"><span class="sub">Cloud Stock-In Synced</span><b id="step11SyncedStockins">0</b></div>
+        <div class="step11-stat"><span class="sub">Cloud In-Stock Units</span><b id="step11CloudInStock">—</b></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn greenbtn" onclick="step11SyncPendingStockIn()">☁️ Sync Pending Stock In</button>
+        <button class="btn" onclick="step11RefreshCloudStockIn()">↻ Refresh Cloud Stock</button>
+      </div>
+      <div id="step11CloudStatus" class="card" style="margin-top:10px;border-color:#263a2b">Status: Ready</div>`;
+    const info=document.getElementById('stockInfo');
+    if(info&&info.parentNode)info.parentNode.insertBefore(box,info);
+    else page.insertBefore(box,page.firstChild);
+    updateStats();
+  }
+  function localStockins(){try{return JSON.parse(localStorage.getItem('4j_stockins')||'[]')}catch(e){return []}}
+  function updateStats(){
+    const arr=localStockins(),map=readSync();
+    const a=document.getElementById('step11LocalStockins'),b=document.getElementById('step11SyncedStockins');
+    if(a)a.textContent=arr.length;
+    if(b)b.textContent=Object.keys(map).length;
+  }
+  async function findOrCreateProduct(cl,p){
+    const sku=String(p?.sku||'').trim();
+    let q=null;
+    if(sku) q=await cl.from('products').select('*').eq('sku',sku).maybeSingle();
+    if(q?.error)throw q.error;
+    if(q?.data)return q.data;
+    const brand=String(p?.brand||'').trim(),model=String(p?.model||'').trim();
+    if(!brand||!model)throw new Error('Missing Brand/Model for cloud product.');
+    const row={
+      sku:sku||null,barcode:String(p?.barcode||'').trim()||null,brand,model,
+      storage:String(p?.storage||'').trim()||null,ram:String(p?.ram||'').trim()||null,
+      color:String(p?.color||'').trim()||null,category:String(p?.category||'Cellphone'),
+      supplier:String(p?.supplier||'').trim()||null,cost_price:Number(p?.cost||0)||0,
+      selling_price:Number(p?.price||p?.sellingPrice||0)||0,low_stock_alert:Math.max(0,Number(p?.lowStock||p?.min||1)||1),
+      imei_tracking:!!(p?.serialTracked||Array.isArray(p?.imeis)&&p.imeis.length||/cellphone|tablet/i.test(String(p?.category||''))),
+      archived:!!p?.archivedModel
+    };
+    const r=await cl.from('products').insert(row).select('*').single();
+    if(r.error)throw r.error;
+    return r.data;
+  }
+  async function syncOne(cl,e){
+    const p=Array.isArray(products)?products.find(x=>String(x.id)===String(e.productId)):null;
+    if(!p)throw new Error('Local product not found for Stock-In record '+e.id);
+    const cp=await findOrCreateProduct(cl,p);
+    const imeis=Array.isArray(e.imeis)?e.imeis.map(String).map(x=>x.trim()).filter(Boolean):[];
+    let invIds=[];
+    if(imeis.length){
+      for(const imei of imeis){
+        const existing=await cl.from('inventory_units').select('id').eq('imei_serial',imei).maybeSingle();
+        if(existing.error)throw existing.error;
+        const row={
+          product_id:cp.id,imei_serial:imei,unit_type:(e.unitType==='Second Hand'?'Second Hand':'Brand New'),
+          variant:String(p.variant||'').trim()||null,cost_price:Number(e.cost??p.cost??0)||0,
+          selling_price:Number(e.price??p.price??0)||0,status:'IN_STOCK',stock_in_at:new Date().toISOString(),sold_at:null
+        };
+        let r;
+        if(existing.data)r=await cl.from('inventory_units').update(row).eq('id',existing.data.id).select('id').single();
+        else r=await cl.from('inventory_units').insert(row).select('id').single();
+        if(r.error)throw r.error;
+        invIds.push(r.data.id);
+      }
+    }else{
+      const row={
+        product_id:cp.id,imei_serial:null,unit_type:(e.unitType==='Second Hand'?'Second Hand':'Brand New'),
+        variant:String(p.variant||'').trim()||null,cost_price:Number(e.cost??p.cost??0)||0,
+        selling_price:Number(e.price??p.price??0)||0,status:'IN_STOCK',stock_in_at:new Date().toISOString()
+      };
+      const r=await cl.from('inventory_units').insert(row).select('id').single();
+      if(r.error)throw r.error;
+      invIds.push(r.data.id);
+    }
+    const sm=readSync();
+    if(!sm[String(e.id)]){
+      const first=invIds[0]||null;
+      const sr=await cl.from('stockins').insert({
+        inventory_unit_id:first,product_id:cp.id,imei_serial:imeis[0]||null,
+        unit_type:e.unitType||'Brand New',cost_price:Number(e.cost||0)||0,
+        selling_price:Number(e.price||p.price||0)||0,stock_in_at:new Date().toISOString(),
+        entered_by:String(e.user||'Admin')
+      }).select('id').single();
+      if(sr.error)throw sr.error;
+      sm[String(e.id)]=sr.data.id;writeSync(sm);
+    }
+  }
+  async function syncPending(){
+    try{
+      setStatus('Syncing pending Stock-In records…',true);
+      const cl=await cloud(),arr=localStockins(),sm=readSync();
+      let done=0;
+      for(const e of arr){if(sm[String(e.id)])continue;await syncOne(cl,e);done++}
+      updateStats();await refreshCloudStockIn();
+      setStatus(done?`Synced ${done} Stock-In record(s) to Cloud.`:'No pending Stock-In records. Cloud is up to date.',true);
+      if(done)alert('SUCCESS! Stock-In records ay na-sync na sa Supabase Cloud.');
+    }catch(e){console.error(e);setStatus('Sync failed: '+(e.message||e),false);alert('Cloud Stock-In sync failed:\n\n'+(e.message||e))}
+  }
+  async function refreshCloudStockIn(){
+    try{
+      const cl=await cloud();
+      const r=await cl.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK');
+      if(r.error)throw r.error;
+      const e=document.getElementById('step11CloudInStock');if(e)e.textContent=r.count??0;
+      setStatus('Cloud stock refreshed. Local data unchanged.',true);
+    }catch(e){setStatus('Cloud refresh failed: '+(e.message||e),false)}
+  }
+  window.step11SyncPendingStockIn=syncPending;
+  window.step11RefreshCloudStockIn=refreshCloudStockIn;
+
+  function wrap(fnName){
+    const original=window[fnName];
+    if(typeof original!=='function')return;
+    if(original.__step11Wrapped)return;
+    function wrapped(){
+      const before=localStockins().length;
+      const result=original.apply(this,arguments);
+      setTimeout(()=>{
+        updateStats();
+        const after=localStockins().length;
+        if(after>before)syncPending().catch(()=>{});
+      },350);
+      return result;
+    }
+    wrapped.__step11Wrapped=true;
+    window[fnName]=wrapped;
+  }
+  function init(){
+    ensureBox();
+    wrap('saveScannedUnitToInventory');
+    wrap('processStockScan');
+    wrap('stockIn');
+    updateStats();
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1700));
+  setTimeout(init,2400);
+})();
+</script>
