@@ -3718,18 +3718,70 @@ function printEndOfDaySummary(){
   window.step11SyncPendingStockIn=syncPending;
   window.step11RefreshCloudStockIn=refreshCloudStockIn;
 
+  const BASELINE_KEY='4j_cloud_stockin_baseline_v1';
+  function baselineIds(){
+    try{return JSON.parse(localStorage.getItem(BASELINE_KEY)||'[]')}catch(e){return []}
+  }
+  function ensureBaseline(){
+    if(localStorage.getItem(BASELINE_KEY)!==null)return;
+    const ids=localStockins().map(e=>String(e.id));
+    localStorage.setItem(BASELINE_KEY,JSON.stringify(ids));
+  }
+  function pendingNewEntries(){
+    const base=new Set(baselineIds());
+    const sm=readSync();
+    return localStockins().filter(e=>!base.has(String(e.id))&&!sm[String(e.id)]);
+  }
+  async function syncNewEntries(){
+    const pending=pendingNewEntries();
+    if(!pending.length){
+      setStatus('No new Stock-In records pending. Existing history is protected from duplicate upload.',true);
+      updateStats();
+      return;
+    }
+    try{
+      setStatus('Syncing new Stock-In to Cloud…',true);
+      const cl=await cloud();
+      for(const e of pending) await syncOne(cl,e);
+      updateStats();
+      await refreshCloudStockIn();
+      setStatus(`Cloud Stock-In complete: ${pending.length} new record(s) synced.`,true);
+      alert(`SUCCESS! ${pending.length} bagong Stock-In record(s) ay na-save sa Supabase Cloud.`);
+    }catch(e){
+      console.error(e);
+      setStatus('Cloud Stock-In failed: '+(e.message||e),false);
+      alert('Cloud Stock-In failed. Local record was kept so we can retry:\n\n'+(e.message||e));
+    }
+  }
+  window.step12SyncNewStockIn=syncNewEntries;
+  function updateStep12Button(){
+    const box=document.getElementById('step11CloudStockInBox');
+    if(!box)return;
+    const btns=box.querySelectorAll('button');
+    if(btns[0]){
+      btns[0].textContent='☁️ Sync New Pending Stock In';
+      btns[0].setAttribute('onclick','step12SyncNewStockIn()');
+    }
+    const note=box.querySelector('.sub');
+    if(note){
+      note.innerHTML='NEW Stock-In records lang ang isi-sync sa Cloud. Ang existing 20 local Stock-In history ay <b>hindi</b> ia-upload ulit para maiwasan ang duplicate. Ang bawat bagong IMEI ay protected by the Cloud unique IMEI rule.';
+    }
+  }
   function wrap(fnName){
     const original=window[fnName];
     if(typeof original!=='function')return;
     if(original.__step11Wrapped)return;
     function wrapped(){
-      const before=localStockins().length;
+      const beforeIds=new Set(localStockins().map(e=>String(e.id)));
       const result=original.apply(this,arguments);
       setTimeout(()=>{
         updateStats();
-        const after=localStockins().length;
-        if(after>before)syncPending().catch(()=>{});
-      },350);
+        const newEntries=localStockins().filter(e=>!beforeIds.has(String(e.id)));
+        if(newEntries.length){
+          // Sync only the records created by this action; never upload the old history.
+          syncNewEntries().catch(()=>{});
+        }
+      },450);
       return result;
     }
     wrapped.__step11Wrapped=true;
@@ -3737,6 +3789,8 @@ function printEndOfDaySummary(){
   }
   function init(){
     ensureBox();
+    ensureBaseline();
+    updateStep12Button();
     wrap('saveScannedUnitToInventory');
     wrap('processStockScan');
     wrap('stockIn');
@@ -3744,5 +3798,68 @@ function printEndOfDaySummary(){
   }
   document.addEventListener('DOMContentLoaded',()=>setTimeout(init,1700));
   setTimeout(init,2400);
+})();
+</script>
+
+<style id="step12-cloudfirst-style">
+#step12CloudFirstBox{border-color:#2b5b34!important}
+#step12CloudFirstBox .cf-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#step12CloudFirstBox .cf-card{padding:14px;border:1px solid #263a2b;border-radius:12px;background:#09110c}
+@media(max-width:700px){#step12CloudFirstBox .cf-grid{grid-template-columns:1fr}}
+</style>
+<script id="step12-cloudfirst-info">
+(function(){
+  function ensureInfo(){
+    const page=document.getElementById('stockin');
+    if(!page||document.getElementById('step12CloudFirstBox'))return;
+    const box=document.createElement('div');
+    box.className='box';box.id='step12CloudFirstBox';box.style.marginBottom='14px';
+    box.innerHTML=`<h2>☁️ Step 12 — Cloud-First Stock In</h2>
+      <div class="sub">Simula ngayon, kapag nagdagdag ka ng bagong physical unit/IMEI, ise-save ito sa local POS at awtomatikong isi-sync sa Supabase Cloud. Ang existing 20 Stock-In history ay hindi na rere-upload.</div>
+      <div class="cf-grid" style="margin-top:12px">
+        <div class="cf-card"><span class="sub">Cloud Stock</span><b style="display:block;font-size:22px;margin-top:4px" id="step12CloudStock">—</b></div>
+        <div class="cf-card"><span class="sub">New Pending</span><b style="display:block;font-size:22px;margin-top:4px" id="step12Pending">0</b></div>
+        <div class="cf-card"><span class="sub">Mode</span><b style="display:block;font-size:18px;margin-top:4px;color:#38d84b">CLOUD-FIRST</b></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn greenbtn" onclick="step12Refresh()">↻ Refresh Cloud Stock</button>
+        <button class="btn" onclick="step12SyncNew()">☁️ Sync New Pending</button>
+      </div>
+      <div id="step12Status" class="card" style="margin-top:10px;border-color:#263a2b">Status: Ready</div>`;
+    const step11=document.getElementById('step11CloudStockInBox');
+    if(step11&&step11.parentNode)step11.parentNode.insertBefore(box,step11.nextSibling);
+    else page.insertBefore(box,page.firstChild);
+  }
+  function pendingCount(){
+    try{
+      const base=new Set(JSON.parse(localStorage.getItem('4j_cloud_stockin_baseline_v1')||'[]'));
+      const sm=JSON.parse(localStorage.getItem('4j_cloud_stockin_sync_v1')||'{}');
+      const arr=JSON.parse(localStorage.getItem('4j_stockins')||'[]');
+      return arr.filter(e=>!base.has(String(e.id))&&!sm[String(e.id)]).length;
+    }catch(e){return 0}
+  }
+  function setStatus(msg,ok=true){
+    const e=document.getElementById('step12Status');
+    if(e){e.textContent='Status: '+msg;e.style.color=ok?'#38d84b':'#ff6b6b'}
+  }
+  async function step12Refresh(){
+    try{
+      const c=JSON.parse(localStorage.getItem('4j_supabase_config')||'{}');
+      const cl=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+      const s=await cl.auth.getSession(); if(!s.data.session)throw new Error('Cloud Admin session is not active.');
+      const r=await cl.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK');
+      if(r.error)throw r.error;
+      document.getElementById('step12CloudStock').textContent=r.count??0;
+      document.getElementById('step12Pending').textContent=pendingCount();
+      setStatus('Cloud stock refreshed. Existing local history protected.',true);
+    }catch(e){setStatus('Refresh failed: '+(e.message||e),false)}
+  }
+  function step12SyncNew(){
+    if(typeof window.step12SyncNewStockIn==='function')window.step12SyncNewStockIn();
+  }
+  window.step12Refresh=step12Refresh;
+  window.step12SyncNew=step12SyncNew;
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{ensureInfo();step12Refresh()},2600));
+  setTimeout(()=>{ensureInfo();step12Refresh()},3200);
 })();
 </script>
