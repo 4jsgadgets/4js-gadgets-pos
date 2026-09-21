@@ -3199,7 +3199,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!sess.data.session)throw new Error('Cloud Admin session is not active. Open Cloud Setup and sign in first.');
     return client;
   }
-  function localProducts109(){return Array.isArray(window.products)?window.products:[]}
+  function localProducts109(){return Array.isArray(products)?products:[]}
   function unitIMEIs109(p){
     if(Array.isArray(p.imeis))return p.imeis.map(String).map(x=>x.trim()).filter(Boolean);
     const x=String(p.imei||'').trim(); return x?[x]:[];
