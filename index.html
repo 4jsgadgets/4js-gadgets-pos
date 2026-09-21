@@ -3174,6 +3174,130 @@ document.addEventListener('DOMContentLoaded',()=>{
   setTimeout(step93Refresh,100);
 });
 </script>
+
+<style id="step109-cloud-sync-style">
+#step109CloudSyncBox .cloud-sync-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#step109CloudSyncBox .sync-stat{padding:14px;border:1px solid #263a2b;border-radius:12px;background:#09110c}
+#step109CloudSyncBox .sync-stat b{font-size:22px;display:block;margin-top:4px}
+#step109CloudSyncBox .sync-note{font-size:12px;color:#a7b1aa;line-height:1.5}
+@media(max-width:700px){#step109CloudSyncBox .cloud-sync-grid{grid-template-columns:1fr}}
+</style>
+<script id="step109-cloud-products-inventory">
+(function(){
+  const MAP_KEY='4j_cloud_product_map_v1';
+  const UNIT_MAP_KEY='4j_cloud_inventory_map_v1';
+  function esc109(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function readJSON109(k,f){try{const v=JSON.parse(localStorage.getItem(k)||'');return v??f}catch(e){return f}}
+  function writeJSON109(k,v){localStorage.setItem(k,JSON.stringify(v));}
+  function cfg109(){try{return JSON.parse(localStorage.getItem('4j_supabase_config')||'{}')}catch(e){return {}}}
+  async function client109(){
+    const c=cfg109();
+    if(!c.url||!c.key)throw new Error('Cloud Setup is incomplete.');
+    if(!window.supabase||!window.supabase.createClient)throw new Error('Supabase library did not load.');
+    const client=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const sess=await client.auth.getSession();
+    if(!sess.data.session)throw new Error('Cloud Admin session is not active. Open Cloud Setup and sign in first.');
+    return client;
+  }
+  function localProducts109(){return Array.isArray(window.products)?window.products:[]}
+  function unitIMEIs109(p){
+    if(Array.isArray(p.imeis))return p.imeis.map(String).map(x=>x.trim()).filter(Boolean);
+    const x=String(p.imei||'').trim(); return x?[x]:[];
+  }
+  function uuid109(){return crypto.randomUUID()}
+  function stockUnitCount109(p){return Math.max(0,Number(p.stock)||0)}
+  function unitType109(p){
+    const t=String(p.unitType||p.condition||'').trim();
+    return t==='Second Hand'?'Second Hand':'Brand New';
+  }
+  function exactCost109(p,imei){
+    try{const fn=window.getUnitPriceFromHistory;if(fn&&imei){const v=Number(fn(imei,'cost'));if(v>0)return v}}catch(e){}
+    return Number(p.cost||p.costPrice||p.purchaseCost||0)||0;
+  }
+  function exactPrice109(p,imei){
+    try{const fn=window.getUnitPriceFromHistory;if(fn&&imei){const v=Number(fn(imei,'price'));if(v>0)return v}}catch(e){}
+    return Number(p.price||p.sellingPrice||p.selling||0)||0;
+  }
+  function productPayload109(p,id){
+    const storage=p.storage||p.storageCapacity||'';
+    const ram=p.ram||p.ramSize||'';
+    const color=p.color||p.colour||'';
+    return {id,sku:String(p.sku||'').trim()||null,barcode:String(p.barcode||'').trim()||null,brand:String(p.brand||'').trim(),model:String(p.model||'').trim(),storage:storage||null,ram:ram||null,color:color||null,category:String(p.category||'Cellphone'),supplier:String(p.supplier||'').trim()||null,cost_price:exactCost109(p,''),selling_price:exactPrice109(p,''),low_stock_alert:Math.max(0,Number(p.min)||0),imei_tracking:!!(p.serialTracked||unitIMEIs109(p).length||/cellphone|tablet/i.test(String(p.category||''))),archived:!!p.archivedModel,updated_at:new Date().toISOString()};
+  }
+  function ensureBox109(){
+    const settings=document.getElementById('settings');
+    if(!settings||document.getElementById('step109CloudSyncBox'))return;
+    const box=document.createElement('div'); box.className='box'; box.id='step109CloudSyncBox'; box.style.marginBottom='14px';
+    box.innerHTML=`<h2>☁️ Step 9 — Products & Inventory Cloud</h2>
+      <div class="sub">Unang migration lang muna: ililipat natin ang kasalukuyang local Products at available Inventory units papunta sa Supabase. Hindi nito binubura ang local POS data.</div>
+      <div class="cloud-sync-grid" style="margin-top:12px">
+        <div class="sync-stat"><span class="sub">Local Products</span><b id="step109LocalProducts">0</b></div>
+        <div class="sync-stat"><span class="sub">Local Stock Units</span><b id="step109LocalUnits">0</b></div>
+        <div class="sync-stat"><span class="sub">Cloud Products</span><b id="step109CloudProducts">—</b></div>
+        <div class="sync-stat"><span class="sub">Cloud Inventory</span><b id="step109CloudUnits">—</b></div>
+      </div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn greenbtn" onclick="step109UploadProductsInventory()">☁️ Upload Local → Cloud</button>
+        <button class="btn" onclick="step109RefreshCloudCounts()">↻ Refresh Cloud Counts</button>
+      </div>
+      <div class="sync-note" style="margin-top:10px">Important: huwag muna gamitin ang Download/overwrite workflow. Sa Step 9, secure initial upload muna tayo. Pagkatapos nito, gagawin natin ang cloud-first Sales/Inventory operations at automatic stock locking para sa 10 devices.</div>
+      <div id="step109SyncStatus" class="card" style="margin-top:10px;border-color:#263a2b">Status: Ready</div>`;
+    const cloudBox=document.getElementById('step108CloudBox');
+    if(cloudBox&&cloudBox.parentNode)cloudBox.parentNode.insertBefore(box,cloudBox.nextSibling);else settings.insertBefore(box,settings.firstChild);
+    updateLocalCounts109();
+  }
+  function updateLocalCounts109(){
+    const ps=localProducts109(); let units=0; ps.forEach(p=>units+=stockUnitCount109(p));
+    const a=document.getElementById('step109LocalProducts'),b=document.getElementById('step109LocalUnits');
+    if(a)a.textContent=ps.length; if(b)b.textContent=units;
+  }
+  function setSyncStatus109(msg,ok){const e=document.getElementById('step109SyncStatus');if(e){e.textContent='Status: '+msg;e.style.color=ok?'#38d84b':'#fff'}}
+  async function refreshCloudCounts109(){
+    try{const c=await client109();const [p,u]=await Promise.all([c.from('products').select('id',{count:'exact',head:true}),c.from('inventory_units').select('id',{count:'exact',head:true})]);if(p.error)throw p.error;if(u.error)throw u.error;document.getElementById('step109CloudProducts').textContent=p.count??0;document.getElementById('step109CloudUnits').textContent=u.count??0;setSyncStatus109('Cloud counts refreshed.',true)}catch(e){setSyncStatus109(e.message||String(e),false)}}
+  async function upload109(){
+    const c=await client109(); const ps=localProducts109(); if(!ps.length){alert('Walang local Products na puwedeng i-upload.');return}
+    const productMap=readJSON109(MAP_KEY,{}), unitMap=readJSON109(UNIT_MAP_KEY,{});
+    const productRows=[];
+    for(const p of ps){
+      if(!p.brand||!p.model)continue;
+      const id=productMap[p.id]||uuid109(); productMap[p.id]=id;
+      productRows.push(productPayload109(p,id));
+    }
+    if(productRows.length){
+      const r=await c.from('products').upsert(productRows,{onConflict:'id'}); if(r.error)throw r.error;
+    }
+    const units=[];
+    for(const p of ps){
+      if(!productMap[p.id])continue;
+      const im=unitIMEIs109(p); const count=stockUnitCount109(p); const total=Math.max(count,im.length);
+      for(let i=0;i<total;i++){
+        const imei=im[i]||null;
+        const key=String(p.id)+'|'+(imei||('UNASSIGNED_'+i));
+        const uid=unitMap[key]||uuid109(); unitMap[key]=uid;
+        units.push({id:uid,product_id:productMap[p.id],imei_serial:imei,unit_type:unitType109(p),variant:String(p.variant||'').trim()||null,cost_price:exactCost109(p,imei),selling_price:exactPrice109(p,imei),status:'IN_STOCK',stock_in_at:new Date().toISOString()});
+      }
+    }
+    if(units.length){
+      // IMEI/serial uniqueness is enforced by the database. We upload in batches for reliability.
+      for(let i=0;i<units.length;i+=100){const r=await c.from('inventory_units').upsert(units.slice(i,i+100),{onConflict:'id'});if(r.error)throw r.error;}
+    }
+    writeJSON109(MAP_KEY,productMap);writeJSON109(UNIT_MAP_KEY,unitMap);
+    updateLocalCounts109(); await refreshCloudCounts109();
+    setSyncStatus109('Initial Products + Inventory upload completed successfully.',true);
+    alert('SUCCESS! Products at Inventory units ay na-upload na sa Supabase Cloud.\n\nLocal data ay hindi binura.');
+  }
+  window.step109RefreshCloudCounts=refreshCloudCounts109;
+  window.step109UploadProductsInventory=async function(){
+    try{
+      setSyncStatus109('Uploading Products + Inventory…',true);
+      if(!confirm('I-upload ang kasalukuyang LOCAL Products at available Inventory units papunta sa Supabase?\n\nHindi buburahin ang local data.'))return;
+      await upload109();
+    }catch(e){console.error(e);setSyncStatus109('Upload failed: '+(e.message||e),false);alert('Cloud upload failed:\n\n'+(e.message||e));}
+  };
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureBox109,900));
+  setTimeout(ensureBox109,1400);
+})();
+</script>
 </body></html>
 <script>
 function userCardAction(){
