@@ -2248,7 +2248,7 @@ function renderInstallments(){
 function showReceipt(s){let rows=s.items.map(i=>`<div class="rline"><span>${esc(i.name)} × ${i.qty}${i.imeis&&i.imeis.length?`<br><small>IMEI/Serial: ${i.imeis.map(esc).join(', ')}</small>`:''}</span><b>${money(i.price*i.qty)}</b></div>`).join('');let bank=s.payment==='Bank Transfer'?`<div class="rline"><span>Bank</span><b>${esc(s.bank||'-')}</b></div><div class="rline"><span>Reference</span><b>${esc(s.bankReference||'-')}</b></div>`:'';let card=s.payment==='Card'?`<div class="rline"><span>Card Type</span><b>${esc(s.cardType||'Credit Card')}</b></div>`:'';let cash=s.payment==='Cash'?`<div class="rline"><span>Cash Received</span><b>${money(s.cashReceived||0)}</b></div><div class="rline"><span>Change</span><b>${money(s.change||0)}</b></div>`:'';let customer=s.customerName?`<div class="rline"><span>Customer</span><b>${esc(s.customerName)}</b></div>${s.customerPhone?`<div class="rline"><span>Mobile</span><b>${esc(s.customerPhone)}</b></div>`:''}`:'';$('receiptContent').innerHTML=`<div style="text-align:center"><h2>4J'S GADGETS</h2><div>CELL PHONES • ACCESSORIES • GADGETS • INSTALLMENT</div><hr></div><div class="rline"><span>Transaction</span><b>#${esc(String(s.id))}</b></div><div class="rline"><span>Date</span><b>${new Date(s.date).toLocaleString('en-PH')}</b></div>${customer}${rows}<div class="rline"><span>Subtotal</span><b>${money(s.items.reduce((a,i)=>a+i.price*i.qty,0))}</b></div><div class="rline"><span>Discount</span><b>-${money(s.discount)}</b></div>${bank}${card}<div class="rline"><span>Payment</span><b>${esc(s.payment)}</b></div>${cash}<div class="rtotal"><span>TOTAL</span><span>${money(s.total)}</span></div><hr><div style="text-align:center;margin-top:12px">Thank you for your purchase!<br><b>4J'S GADGETS</b><br><small>Powered by Kehns Gadgets</small></div>`;$('receiptModal').classList.add('show')}
 function closeReceipt(){$('receiptModal').classList.remove('show')}
 function printReceipt(){window.print()}
-async function checkout(){
+function checkout(){
   if(!cart.length)return alert('Cart is empty.');
   if(payment==='Bank Transfer'&&(!$('bankName').value.trim()||!$('bankReference').value.trim()))return alert('Enter bank name and transfer reference number.');
   if(payment==='Card'&&!(selectedCardType||$('cardType')?.value))return alert('Select Credit Card or Debit Card.');
@@ -2266,30 +2266,6 @@ async function checkout(){
       for(let code of i.imeis)if(!available.includes(normalizeUnitCode(code)))return alert('IMEI/Serial '+code+' is not currently in stock.');
     }
   }
-  // CLOUD-FIRST: complete the sale in Supabase before changing local stock.
-  // If Cloud Sale fails, local inventory remains untouched.
-  try{
-    await cloudCheckoutBeforeLocalSale({
-      cart,
-      subtotal:sub,
-      discount:disc,
-      total,
-      payment,
-      cashReceived,
-      pendingFinancingSale,
-      customer:selectedCustomer(),
-      cashier:currentUserLabel()
-    });
-  }catch(e){
-    console.error('Cloud sale blocked:',e);
-    alert('Cloud Sale was not completed.
-
-Walang nabawas sa local inventory.
-
-'+(e.message||e));
-    return;
-  }
-
   cart.forEach(i=>{
     let p=products.find(x=>String(x.id)===String(i.id));p.stock-=i.qty;
     if(productIsIMEITracked(p)){
@@ -3472,123 +3448,7 @@ function printEndOfDaySummary(){
   const c=$('eodContent'); if(!c)return;
   const w=window.open('','_blank','width=700,height=800');
   if(!w){alert('Please allow pop-ups to print the summary.');return;}
-  w.document.write(`<html><head><title>4J's Gadgets - End-of-Day Summary</title><style>body{font-family:Arial;padding:24px}h1{margin-bottom:6px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{border:1px solid #ccc;border-radius:10px;padding:12px}.label{color:#666;font-size:12px}.value{font-size:22px;font-weight:700;margin-top:4px}@media print{button{display:none}}</style></head><body><h1>4J's Gadgets POS</h1><h2>End-of-Day Summary</h2><div>${c.innerHTML.replaceAll('eod-grid','grid').replaceAll('eod-card','card').replaceAll('eod-label','label').replaceAll('eod-value','value')}</div><script>window.onload=()=>window.print()<\/script>
-<script id="step114-safe-cloud-sales">
-(function(){
-  function cfg(){try{return JSON.parse(localStorage.getItem('4j_supabase_config')||'{}')}catch(e){return {}}}
-  async function cloudClient(){
-    const c=cfg();
-    if(!c.url||!c.key)throw new Error('Cloud Setup is incomplete.');
-    if(!window.supabase||!window.supabase.createClient)throw new Error('Supabase library did not load.');
-    const cl=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-    const ss=await cl.auth.getSession();
-    if(!ss.data.session)throw new Error('Cloud session is not active. Open Cloud Setup and sign in first.');
-    return cl;
-  }
-  async function findCloudProduct(cl,item){
-    if(item.sku){
-      const r=await cl.from('products').select('id,sku,brand,model').eq('sku',String(item.sku)).maybeSingle();
-      if(r.error)throw r.error;
-      if(r.data)return r.data;
-    }
-    const r=await cl.from('products').select('id,sku,brand,model')
-      .ilike('brand',String(item.brand||''))
-      .ilike('model',String(item.model||item.name||''))
-      .limit(1);
-    if(r.error)throw r.error;
-    if(!r.data||!r.data.length)throw new Error('Cloud product not found: '+(item.name||item.model||'Unknown product'));
-    return r.data[0];
-  }
-  async function cloudUnitByImei(cl,imei){
-    const r=await cl.from('inventory_units').select('id,product_id,status,imei_serial,cost_price,selling_price')
-      .eq('imei_serial',String(imei)).maybeSingle();
-    if(r.error)throw r.error;
-    if(!r.data)throw new Error('Cloud IMEI/Serial not found: '+imei);
-    if(r.data.status!=='IN_STOCK')throw new Error('Cloud IMEI/Serial is already sold or unavailable: '+imei);
-    return r.data;
-  }
-  async function cloudUnitsWithoutImei(cl,productId,qty){
-    const r=await cl.from('inventory_units').select('id,product_id,status,imei_serial,cost_price,selling_price')
-      .eq('product_id',productId).eq('status','IN_STOCK').is('imei_serial',null).order('stock_in_at',{ascending:true}).limit(qty);
-    if(r.error)throw r.error;
-    if(!r.data||r.data.length<qty)throw new Error('Not enough cloud stock for this product.');
-    return r.data;
-  }
-  async function cloudCheckoutBeforeLocalSale(o){
-    const cl=await cloudClient();
-    const cloudItems=[];
-    for(const item of o.cart){
-      const cp=await findCloudProduct(cl,item);
-      const imeis=Array.isArray(item.imeis)?item.imeis.map(String).map(x=>x.trim()).filter(Boolean):[];
-      let units=[];
-      if(imeis.length){
-        for(const imei of imeis)units.push(await cloudUnitByImei(cl,imei));
-      }else{
-        units=await cloudUnitsWithoutImei(cl,cp.id,Number(item.qty)||1);
-      }
-      cloudItems.push({
-        inventory_unit_id:units[0]?.id,
-        unit_ids:units.map(u=>u.id),
-        sku:item.sku||cp.sku||'',
-        brand:item.brand||cp.brand||'',
-        model:item.model||item.name||cp.model||'',
-        variant:item.variant||'',
-        unit_price:Number(item.price)||0,
-        unit_cost:Number(item.cost)||0,
-        discount:Number(item.qty||1)===1?Number(item.discount||0):0,
-        imeis:imeis
-      });
-    }
-    // The RPC accepts one physical inventory_unit_id per item. For multi-unit
-    // non-IMEI items, call it once per physical unit to keep locking exact.
-    const rpcItems=[];
-    for(const ci of cloudItems){
-      if(ci.unit_ids.length<=1){
-        rpcItems.push({inventory_unit_id:ci.inventory_unit_id,sku:ci.sku,brand:ci.brand,model:ci.model,variant:ci.variant,unit_price:ci.unit_price,unit_cost:ci.unit_cost,discount:ci.discount});
-      }else{
-        for(const uid of ci.unit_ids){
-          rpcItems.push({inventory_unit_id:uid,sku:ci.sku,brand:ci.brand,model:ci.model,variant:ci.variant,unit_price:ci.unit_price,unit_cost:ci.unit_cost,discount:0});
-        }
-      }
-    }
-    const tx='4J-'+Date.now()+'-'+Math.floor(Math.random()*1000);
-    const isInstallment=o.payment==='Installment';
-    const actualCollected=isInstallment?(Number(o.pendingFinancingSale?.amountReceivedToday)||0):(o.payment==='Cash'?(Number(o.cashReceived)||0):Number(o.total)||0);
-    const financed=isInstallment?(Number(o.pendingFinancingSale?.financedAmount)||0):0;
-    const finCompany=isInstallment?(o.pendingFinancingSale?.financingCompany||''):'';
-    const r=await cl.rpc('process_cloud_sale',{
-      p_transaction_no:tx,
-      p_customer_name:o.customer?.name||null,
-      p_customer_mobile:o.customer?.phone||null,
-      p_subtotal:Number(o.subtotal)||0,
-      p_discount:Number(o.discount)||0,
-      p_total:Number(o.total)||0,
-      p_actual_collected:actualCollected,
-      p_financed_amount:financed,
-      p_payment_method:o.payment||null,
-      p_financing_company:finCompany||null,
-      p_cashier_username:o.cashier||'POS',
-      p_cashier_name:o.cashier||'POS',
-      p_items:rpcItems
-    });
-    if(r.error)throw r.error;
-    if(!r.data||r.data.success!==true)throw new Error('Cloud Sale did not return success.');
-    localStorage.setItem('4j_last_cloud_sale',JSON.stringify({transaction_no:tx,at:new Date().toISOString(),sale_id:r.data.sale_id,units:r.data.units}));
-  }
-  window.cloudCheckoutBeforeLocalSale=cloudCheckoutBeforeLocalSale;
-  document.addEventListener('DOMContentLoaded',function(){
-    setTimeout(function(){
-      const page=document.getElementById('sales');
-      if(!page||document.getElementById('step114CloudSalesBox'))return;
-      const box=document.createElement('div');
-      box.className='box';box.id='step114CloudSalesBox';box.style.marginBottom='14px';
-      box.innerHTML='<h2>☁️ Cloud-First Sales</h2><div class="sub">Admin at Cashier parehong puwedeng magbenta. Bago mabawasan ang local stock, sine-secure muna ang sale sa Cloud para maiwasan ang double-selling ng IMEI.</div><div class="card" style="margin-top:10px;border-color:#263a2b">Status: <b style="color:#38d84b">CLOUD-FIRST</b></div>';
-      page.insertBefore(box,page.firstChild);
-    },1800);
-  });
-})();
-</script>
-</body></html>`);
+  w.document.write(`<html><head><title>4J's Gadgets - End-of-Day Summary</title><style>body{font-family:Arial;padding:24px}h1{margin-bottom:6px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{border:1px solid #ccc;border-radius:10px;padding:12px}.label{color:#666;font-size:12px}.value{font-size:22px;font-weight:700;margin-top:4px}@media print{button{display:none}}</style></head><body><h1>4J's Gadgets POS</h1><h2>End-of-Day Summary</h2><div>${c.innerHTML.replaceAll('eod-grid','grid').replaceAll('eod-card','card').replaceAll('eod-label','label').replaceAll('eod-value','value')}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
   w.document.close();
 }
 </script>
