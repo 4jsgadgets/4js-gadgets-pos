@@ -3564,7 +3564,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
-</body></html>
+
 <script>
 function userCardAction(){
   const u=getCurrentUser();
@@ -3650,7 +3650,7 @@ function printEndOfDaySummary(){
   const c=$('eodContent'); if(!c)return;
   const w=window.open('','_blank','width=700,height=800');
   if(!w){alert('Please allow pop-ups to print the summary.');return;}
-  w.document.write(`<html><head><title>4J's Gadgets - End-of-Day Summary</title><style>body{font-family:Arial;padding:24px}h1{margin-bottom:6px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{border:1px solid #ccc;border-radius:10px;padding:12px}.label{color:#666;font-size:12px}.value{font-size:22px;font-weight:700;margin-top:4px}@media print{button{display:none}}</style></head><body><h1>4J's Gadgets POS</h1><h2>End-of-Day Summary</h2><div>${c.innerHTML.replaceAll('eod-grid','grid').replaceAll('eod-card','card').replaceAll('eod-label','label').replaceAll('eod-value','value')}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.write(`<html><head><title>4J's Gadgets - End-of-Day Summary</title><style>body{font-family:Arial;padding:24px}h1{margin-bottom:6px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{border:1px solid #ccc;border-radius:10px;padding:12px}.label{color:#666;font-size:12px}.value{font-size:22px;font-weight:700;margin-top:4px}@media print{button{display:none}}</style></head><body><h1>4J's Gadgets POS</h1><h2>End-of-Day Summary</h2><div>${c.innerHTML.replaceAll('eod-grid','grid').replaceAll('eod-card','card').replaceAll('eod-label','label').replaceAll('eod-value','value')}</div><script>window.onload=()=>window.print()<\/script>`);
   w.document.close();
 }
 </script>
@@ -4065,3 +4065,4 @@ function printEndOfDaySummary(){
   setTimeout(()=>{ensureInfo();step12Refresh()},3200);
 })();
 </script>
+</body></html>
