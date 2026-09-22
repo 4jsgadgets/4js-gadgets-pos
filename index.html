@@ -2948,6 +2948,11 @@ function step91DateMatch(value, target){
   return step91LocalISODate(d)===target;
 }
 function step91GetSales(){
+  // Use the live in-memory Cloud-synced sales first. This is important for Cashier
+  // devices where localStorage can briefly lag behind the Cloud refresh.
+  try{
+    if(Array.isArray(sales) && sales.length) return sales.slice();
+  }catch(e){}
   try{
     const rows=JSON.parse(localStorage.getItem('4j_sales')||'[]');
     return Array.isArray(rows)?rows:[];
