@@ -3504,16 +3504,14 @@ function printEndOfDaySummary(){
 <script id="step115-safe-cloud-sales">
 (function(){
   const CFG_KEY='4j_supabase_config';
-  function cfg(){
-    try{return JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}catch(e){return {}}
-  }
+  function cfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}catch(e){return {}}}
   async function getCloud(){
     const c=cfg();
     if(!c.url||!c.key) throw new Error('Cloud Setup is incomplete. Please connect Supabase first.');
     if(!window.supabase?.createClient) throw new Error('Supabase library did not load.');
     const cl=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     const s=await cl.auth.getSession();
-    if(!s.data.session) throw new Error('Cloud Admin session is not active. Please sign in to Cloud Setup.');
+    if(!s.data?.session) throw new Error('Cloud session is not active. Please sign in to Cloud Setup.');
     return cl;
   }
   async function findCloudProduct(cl,p){
@@ -3539,81 +3537,53 @@ function printEndOfDaySummary(){
       const lineGross=(Number(item.price)||0)*qty;
       const lineDiscount=subtotal>0 ? discount*(lineGross/subtotal) : 0;
       const perUnitDiscount=qty>0 ? lineDiscount/qty : 0;
-
       if(productIsIMEITracked(p)){
         const imeis=Array.isArray(item.imeis)?item.imeis.map(x=>String(x).trim()).filter(Boolean):[];
         if(imeis.length!==qty) throw new Error('IMEI/Serial assignment is incomplete for '+(item.name||''));
         for(const imei of imeis){
-          const r=await cl.from('inventory_units')
-            .select('id,status,imei_serial')
-            .eq('product_id',cp.id)
-            .eq('imei_serial',imei)
-            .maybeSingle();
+          const r=await cl.from('inventory_units').select('id,status,imei_serial').eq('product_id',cp.id).eq('imei_serial',imei).maybeSingle();
           if(r.error) throw r.error;
           if(!r.data) throw new Error('Cloud IMEI not found: '+imei);
           if(String(r.data.status).toUpperCase()!=='IN_STOCK') throw new Error('Cloud IMEI is no longer in stock: '+imei);
-          out.push({
-            inventory_unit_id:r.data.id,
-            sku:p.sku||'',
-            brand:p.brand||'',
-            model:p.model||'',
-            variant:p.variant||'',
-            unit_price:Number(item.price)||0,
-            unit_cost:Number(item.cost)||0,
-            discount:perUnitDiscount
-          });
+          out.push({inventory_unit_id:r.data.id,sku:p.sku||'',brand:p.brand||'',model:p.model||'',variant:p.variant||'',unit_price:Number(item.price)||0,unit_cost:Number(item.cost)||0,discount:perUnitDiscount,imei_serial:imei});
         }
       }else{
-        const r=await cl.from('inventory_units')
-          .select('id,status')
-          .eq('product_id',cp.id)
-          .eq('status','IN_STOCK')
-          .is('imei_serial',null)
-          .order('stock_in_at',{ascending:true})
-          .limit(qty);
+        const r=await cl.from('inventory_units').select('id,status,imei_serial').eq('product_id',cp.id).eq('status','IN_STOCK').is('imei_serial',null).order('stock_in_at',{ascending:true}).limit(qty);
         if(r.error) throw r.error;
         if((r.data||[]).length!==qty) throw new Error('Not enough cloud stock for '+(item.name||''));
         for(const u of r.data){
-          out.push({
-            inventory_unit_id:u.id,
-            sku:p.sku||'',
-            brand:p.brand||'',
-            model:p.model||'',
-            variant:p.variant||'',
-            unit_price:Number(item.price)||0,
-            unit_cost:Number(item.cost)||0,
-            discount:perUnitDiscount
-          });
+          out.push({inventory_unit_id:u.id,sku:p.sku||'',brand:p.brand||'',model:p.model||'',variant:p.variant||'',unit_price:Number(item.price)||0,unit_cost:Number(item.cost)||0,discount:perUnitDiscount});
         }
       }
     }
     return out;
   }
+  async function verifyCloudSale(cl,cloudItems){
+    const ids=cloudItems.map(x=>String(x.inventory_unit_id)).filter(Boolean);
+    if(!ids.length) throw new Error('No cloud inventory units were assigned to this sale.');
+    const r=await cl.from('inventory_units').select('id,status').in('id',ids);
+    if(r.error) throw r.error;
+    const map=new Map((r.data||[]).map(x=>[String(x.id),String(x.status||'').toUpperCase()]));
+    const notSold=ids.filter(id=>map.get(id)!=='SOLD');
+    if(notSold.length) throw new Error('Cloud sale was not confirmed. Inventory was not marked SOLD. Please do not retry until Cloud is checked.');
+  }
 
   const originalCheckout=window.checkout;
   window.checkout=async function(){
     if(window.__step115CloudSaleBusy)return;
-    if(!Array.isArray(cart)||!cart.length){ if(typeof originalCheckout==='function') return originalCheckout(); return; }
-
+    if(!Array.isArray(cart)||!cart.length){
+      if(typeof originalCheckout==='function') return originalCheckout();
+      return;
+    }
     try{
       window.__step115CloudSaleBusy=true;
-
       const disc=Math.max(0,+$('discount').value||0);
       const sub=cart.reduce((a,i)=>a+(Number(i.price)||0)*(Number(i.qty)||0),0);
       const total=Math.max(0,sub-disc);
       const cashReceived=Math.max(0,+$('cashReceived')?.value||0);
-
-      if(payment==='Cash'&&cashReceived<total){
-        throw new Error('Cash received is less than the total.');
-      }
-      if(payment==='Bank Transfer'&&(!$('bankName')?.value.trim()||!$('bankReference')?.value.trim())){
-        throw new Error('Enter bank name and transfer reference number.');
-      }
-      if(payment==='Card'&&!(selectedCardType||$('cardType')?.value)){
-        throw new Error('Select Credit Card or Debit Card.');
-      }
-
-      /* Validate local cart BEFORE touching cloud */
+      if(payment==='Cash'&&cashReceived<total) throw new Error('Cash received is less than the total.');
+      if(payment==='Bank Transfer'&&(!$('bankName')?.value.trim()||!$('bankReference')?.value.trim())) throw new Error('Enter bank name and transfer reference number.');
+      if(payment==='Card'&&!(selectedCardType||$('cardType')?.value)) throw new Error('Select Credit Card or Debit Card.');
       for(const i of cart){
         const p=products.find(x=>String(x.id)===String(i.id));
         if(!p||Number(p.stock||0)<Number(i.qty||0)) throw new Error('Insufficient local stock for '+(i.name||''));
@@ -3622,21 +3592,17 @@ function printEndOfDaySummary(){
           if(imeis.length!==Number(i.qty||0)) throw new Error('IMEI/Serial assignment is incomplete for '+(i.name||''));
         }
       }
-
       const cl=await getCloud();
       const cloudItems=await buildCloudItems(cl,cart,disc,sub);
       const cust=selectedCustomer();
       const u=getCurrentUser ? getCurrentUser() : null;
-
       const isInstallment=payment==='Installment';
       const downpayment=isInstallment?(Number(pendingFinancingSale?.downpayment)||0):0;
       const financedAmount=isInstallment?(Number(pendingFinancingSale?.financedAmount)||0):0;
-      const actualCollected=isInstallment
-        ? (Number(pendingFinancingSale?.amountReceivedToday)||downpayment)
-        : Number(total);
-
+      const actualCollected=isInstallment?(Number(pendingFinancingSale?.amountReceivedToday)||downpayment):Number(total);
+      const tx='TX-'+Date.now()+'-'+Math.floor(Math.random()*1000);
       const args={
-        p_transaction_no:String(Date.now()),
+        p_transaction_no:tx,
         p_customer_name:cust?.name||null,
         p_customer_mobile:cust?.phone||null,
         p_subtotal:Number(sub),
@@ -3650,36 +3616,32 @@ function printEndOfDaySummary(){
         p_cashier_name:currentUserLabel ? currentUserLabel() : (u?.name||'Unknown'),
         p_items:cloudItems
       };
-
-      if(typeof toast==='function')toast('☁️ Processing Cloud Sale…');
-
+      if(typeof toast==='function')toast('☁️ Saving sale to Cloud…');
       const r=await cl.rpc('process_cloud_sale',args);
       if(r.error) throw r.error;
+      await verifyCloudSale(cl,cloudItems);
 
-      /* Cloud sale succeeded. Now run the proven local checkout so
-         receipt/local history/UX stay exactly as before. */
       if(typeof originalCheckout!=='function') throw new Error('Original checkout function is unavailable.');
       await originalCheckout();
 
-      if(typeof toast==='function')toast('☁️ Sale saved to Cloud successfully.');
+      if(typeof window.step120CloudSyncNow==='function') setTimeout(()=>window.step120CloudSyncNow(),250);
+      if(typeof toast==='function')toast('✅ SALE SUCCESSFUL • Cloud inventory updated');
+      alert('✅ SALE SUCCESSFUL!\n\nCloud Inventory was updated successfully.\nThe other POS devices will sync automatically.');
     }catch(e){
-      console.error('Step 115 Cloud Sale failed:',e);
-      alert('☁️ CLOUD SALE NOT COMPLETED\n\n'+(e?.message||e)+'\n\nWalang binawas sa local inventory.');
+      console.error('Cloud-first sale failed:',e);
+      alert('☁️ SALE NOT COMPLETED\n\n'+(e?.message||e)+'\n\nWalang local inventory na ibinawas.');
     }finally{
       window.__step115CloudSaleBusy=false;
     }
   };
-
   function addIndicator(){
     const page=document.getElementById('sale');
     if(!page||document.getElementById('step115CloudSaleStatus'))return;
     const box=document.createElement('div');
-    box.id='step115CloudSaleStatus';
-    box.className='sub';
+    box.id='step115CloudSaleStatus'; box.className='sub';
     box.style.cssText='margin:8px 0;padding:9px 12px;border:1px solid #263a2b;border-radius:10px;background:#09110c;';
     box.innerHTML='☁️ <b>Cloud-First Sales:</b> Active — Admin & Cashier';
-    const h=page.querySelector('.box');
-    if(h)h.insertBefore(box,h.children[1]||null);
+    const h=page.querySelector('.box'); if(h)h.insertBefore(box,h.children[1]||null);
   }
   document.addEventListener('DOMContentLoaded',()=>setTimeout(addIndicator,400));
 })();
