@@ -3253,7 +3253,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function setSyncStatus109(msg,ok){const e=document.getElementById('step109SyncStatus');if(e){e.textContent='Status: '+msg;e.style.color=ok?'#38d84b':'#fff'}}
   async function refreshCloudCounts109(){
-    try{const c=await client109();const [p,u]=await Promise.all([c.from('products').select('id',{count:'exact',head:true}),c.from('inventory_units').select('id',{count:'exact',head:true})]);if(p.error)throw p.error;if(u.error)throw u.error;document.getElementById('step109CloudProducts').textContent=p.count??0;document.getElementById('step109CloudUnits').textContent=u.count??0;setSyncStatus109('Cloud counts refreshed.',true)}catch(e){setSyncStatus109(e.message||String(e),false)}}
+    try{const c=await client109();const [p,u]=await Promise.all([c.from('products').select('id',{count:'exact',head:true}).eq('archived',false),c.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK')]);if(p.error)throw p.error;if(u.error)throw u.error;document.getElementById('step109CloudProducts').textContent=p.count??0;document.getElementById('step109CloudUnits').textContent=u.count??0;setSyncStatus109('Cloud counts refreshed.',true)}catch(e){setSyncStatus109(e.message||String(e),false)}}
   async function upload109(){
     const c=await client109(); const ps=localProducts109(); if(!ps.length){alert('Walang local Products na puwedeng i-upload.');return}
     const productMap=readJSON109(MAP_KEY,{}), unitMap=readJSON109(UNIT_MAP_KEY,{});
@@ -3383,7 +3383,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     box.innerHTML=`<h2>🛟 Fix Local Inventory</h2><div class="sub">Cloud data ang source natin. Ire-restore nito ang Cloud Products at <b>IN_STOCK</b> units pabalik sa local POS.<br><br><b>Hindi nito binubura ang Cloud data.</b> Ang <b>Upload Local → Cloud</b> sa Step 9 ay mananatili.</div><div class="cloud-sync-grid" style="margin-top:12px"><div class="sync-stat"><span class="sub">Local Products</span><b id="step117LocalProducts">0</b></div><div class="sync-stat"><span class="sub">Local Stock Units</span><b id="step117LocalUnits">0</b></div><div class="sync-stat"><span class="sub">Cloud Products</span><b id="step117CloudProducts">—</b></div><div class="sync-stat"><span class="sub">Cloud In-Stock Units</span><b id="step117CloudUnits">—</b></div></div><div class="toolbar" style="margin-top:12px"><button class="btn greenbtn" onclick="step117RestoreCloudToLocal()">☁️ Restore Cloud → Local</button><button class="btn" onclick="step117RefreshCounts()">↻ Refresh Counts</button></div><div id="step117RecoveryStatus" class="card" style="margin-top:10px;border-color:#263a2b">Status: Ready</div>`;
     const step9=document.getElementById('step109CloudSyncBox');if(step9&&step9.parentNode)step9.parentNode.insertBefore(box,step9.nextSibling);else settings.insertBefore(box,settings.firstChild);localCounts();
   }
-  async function refreshCounts(){try{const cl=await cloud();const [pr,ur]=await Promise.all([cl.from('products').select('id',{count:'exact',head:true}),cl.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK')]);if(pr.error)throw pr.error;if(ur.error)throw ur.error;ensureBox();const cp=document.getElementById('step117CloudProducts');const cu=document.getElementById('step117CloudUnits');if(cp)cp.textContent=pr.count??0;if(cu)cu.textContent=ur.count??0;localCounts();setStatus('Cloud counts refreshed.',true)}catch(e){setStatus(e.message||String(e),false)}}
+  async function refreshCounts(){try{const cl=await cloud();const [pr,ur]=await Promise.all([cl.from('products').select('id',{count:'exact',head:true}).eq('archived',false),cl.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK')]);if(pr.error)throw pr.error;if(ur.error)throw ur.error;ensureBox();const cp=document.getElementById('step117CloudProducts');const cu=document.getElementById('step117CloudUnits');if(cp)cp.textContent=pr.count??0;if(cu)cu.textContent=ur.count??0;localCounts();setStatus('Cloud counts refreshed.',true)}catch(e){setStatus(e.message||String(e),false)}}
   async function restore(){
     if(!confirm('Ire-restore ang Cloud Products at IN_STOCK Inventory sa local POS?\n\nHindi buburahin ang Cloud data.'))return;
     try{
@@ -4117,7 +4117,16 @@ function printEndOfDaySummary(){
     ]); if(p.error)throw p.error;if(u.error)throw u.error;
     const map=new Map();(u.data||[]).forEach(x=>{let k=String(x.product_id);if(!map.has(k))map.set(k,[]);map.get(k).push(x)});
     const out=(p.data||[]).map(x=>{let us=map.get(String(x.id))||[],f=us[0]||{},ims=us.map(z=>String(z.imei_serial||'').trim()).filter(Boolean);return {id:String(x.id),sku:String(x.sku||x.barcode||''),barcode:String(x.barcode||x.sku||''),brand:String(x.brand||''),model:String(x.model||''),variant:String(f.variant||[x.storage,x.ram,x.color].filter(Boolean).join(' / ')),imei:ims[0]||'',imeis:ims,category:String(x.category||'Cellphone'),supplier:String(x.supplier||''),cost:n(f.cost_price??x.cost_price),price:n(f.selling_price??x.selling_price),stock:us.length,min:n(x.low_stock_alert),serialTracked:Boolean(x.imei_tracking||ims.length||/cellphone|tablet/i.test(String(x.category||''))),archivedModel:Boolean(x.archived),restoredFromCloud:true}}).filter(x=>x.brand&&x.model&&!x.archivedModel);
-    products.length=0;out.forEach(x=>products.push(x));
+    // Keep zero-stock cloud products too so Local Products == Cloud Products.
+    const inStockByProduct=new Map();
+    (u.data||[]).forEach(unit=>{const k=String(unit.product_id);if(!inStockByProduct.has(k))inStockByProduct.set(k,[]);inStockByProduct.get(k).push(unit)});
+    const allProducts=(p.data||[]).map(x=>{
+      const us=inStockByProduct.get(String(x.id))||[];
+      const f=us[0]||{};
+      const ims=us.map(z=>String(z.imei_serial||'').trim()).filter(Boolean);
+      return {id:String(x.id),sku:String(x.sku||x.barcode||''),barcode:String(x.barcode||x.sku||''),brand:String(x.brand||''),model:String(x.model||''),variant:String(f.variant||[x.storage,x.ram,x.color].filter(Boolean).join(' / ')),imei:ims[0]||'',imeis:ims,category:String(x.category||'Cellphone'),supplier:String(x.supplier||''),cost:n(f.cost_price??x.cost_price),price:n(f.selling_price??x.selling_price),stock:us.length,min:n(x.low_stock_alert),serialTracked:Boolean(x.imei_tracking||ims.length||/cellphone|tablet/i.test(String(x.category||''))),archivedModel:Boolean(x.archived),restoredFromCloud:true};
+    }).filter(x=>x.brand&&x.model&&!x.archivedModel);
+    products.length=0;allProducts.forEach(x=>products.push(x));
   }
   async function cloudSales(cl){
     const r=await cl.from('sales').select('*').order('created_at',{ascending:true});if(r.error)throw r.error;
