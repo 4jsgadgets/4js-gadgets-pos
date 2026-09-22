@@ -2974,8 +2974,20 @@ function step91RefreshDashboard(){
   let salesTotal=0, profitTotal=0, units=0;
   rows.forEach(s=>{
     salesTotal+=Number(s.total??s.amount??s.grandTotal??0)||0;
-    profitTotal+=Number(s.profit??s.totalProfit??0)||0;
-    if(Array.isArray(s.items)) units+=s.items.reduce((a,i)=>a+(Number(i.qty)||1),0);
+    // Cloud sales may not carry a precomputed profit field. Calculate it
+    // directly from sale items (selling price - unit cost) x quantity,
+    // then apply the sale discount once. This keeps Today's Profit correct
+    // after Cloud sync and after page refresh.
+    if(Array.isArray(s.items)){
+      const itemProfit=s.items.reduce((a,i)=>a+((Number(i.price)||0)-(Number(i.cost)||0))*(Number(i.qty)||1),0);
+      profitTotal += (s.profit!=null||s.totalProfit!=null)
+        ? (Number(s.profit??s.totalProfit)||0)
+        : itemProfit-(Number(s.discount)||0);
+      units+=s.items.reduce((a,i)=>a+(Number(i.qty)||1),0);
+    }else{
+      profitTotal += Number(s.profit??s.totalProfit??0)||0;
+      units+=Number(s.qty||1)||1;
+    }
     else units+=Number(s.qty||1)||1;
   });
 
