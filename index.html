@@ -3504,14 +3504,16 @@ function printEndOfDaySummary(){
 <script id="step115-safe-cloud-sales">
 (function(){
   const CFG_KEY='4j_supabase_config';
-  function cfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}catch(e){return {}}}
+  function cfg(){
+    try{return JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}catch(e){return {}}
+  }
   async function getCloud(){
     const c=cfg();
     if(!c.url||!c.key) throw new Error('Cloud Setup is incomplete. Please connect Supabase first.');
     if(!window.supabase?.createClient) throw new Error('Supabase library did not load.');
     const cl=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     const s=await cl.auth.getSession();
-    if(!s.data?.session) throw new Error('Cloud session is not active. Please sign in to Cloud Setup.');
+    if(!s.data.session) throw new Error('Cloud Admin session is not active. Please sign in to Cloud Setup.');
     return cl;
   }
   async function findCloudProduct(cl,p){
@@ -3537,53 +3539,81 @@ function printEndOfDaySummary(){
       const lineGross=(Number(item.price)||0)*qty;
       const lineDiscount=subtotal>0 ? discount*(lineGross/subtotal) : 0;
       const perUnitDiscount=qty>0 ? lineDiscount/qty : 0;
+
       if(productIsIMEITracked(p)){
         const imeis=Array.isArray(item.imeis)?item.imeis.map(x=>String(x).trim()).filter(Boolean):[];
         if(imeis.length!==qty) throw new Error('IMEI/Serial assignment is incomplete for '+(item.name||''));
         for(const imei of imeis){
-          const r=await cl.from('inventory_units').select('id,status,imei_serial').eq('product_id',cp.id).eq('imei_serial',imei).maybeSingle();
+          const r=await cl.from('inventory_units')
+            .select('id,status,imei_serial')
+            .eq('product_id',cp.id)
+            .eq('imei_serial',imei)
+            .maybeSingle();
           if(r.error) throw r.error;
           if(!r.data) throw new Error('Cloud IMEI not found: '+imei);
           if(String(r.data.status).toUpperCase()!=='IN_STOCK') throw new Error('Cloud IMEI is no longer in stock: '+imei);
-          out.push({inventory_unit_id:r.data.id,sku:p.sku||'',brand:p.brand||'',model:p.model||'',variant:p.variant||'',unit_price:Number(item.price)||0,unit_cost:Number(item.cost)||0,discount:perUnitDiscount,imei_serial:imei});
+          out.push({
+            inventory_unit_id:r.data.id,
+            sku:p.sku||'',
+            brand:p.brand||'',
+            model:p.model||'',
+            variant:p.variant||'',
+            unit_price:Number(item.price)||0,
+            unit_cost:Number(item.cost)||0,
+            discount:perUnitDiscount
+          });
         }
       }else{
-        const r=await cl.from('inventory_units').select('id,status,imei_serial').eq('product_id',cp.id).eq('status','IN_STOCK').is('imei_serial',null).order('stock_in_at',{ascending:true}).limit(qty);
+        const r=await cl.from('inventory_units')
+          .select('id,status')
+          .eq('product_id',cp.id)
+          .eq('status','IN_STOCK')
+          .is('imei_serial',null)
+          .order('stock_in_at',{ascending:true})
+          .limit(qty);
         if(r.error) throw r.error;
         if((r.data||[]).length!==qty) throw new Error('Not enough cloud stock for '+(item.name||''));
         for(const u of r.data){
-          out.push({inventory_unit_id:u.id,sku:p.sku||'',brand:p.brand||'',model:p.model||'',variant:p.variant||'',unit_price:Number(item.price)||0,unit_cost:Number(item.cost)||0,discount:perUnitDiscount});
+          out.push({
+            inventory_unit_id:u.id,
+            sku:p.sku||'',
+            brand:p.brand||'',
+            model:p.model||'',
+            variant:p.variant||'',
+            unit_price:Number(item.price)||0,
+            unit_cost:Number(item.cost)||0,
+            discount:perUnitDiscount
+          });
         }
       }
     }
     return out;
   }
-  async function verifyCloudSale(cl,cloudItems){
-    const ids=cloudItems.map(x=>String(x.inventory_unit_id)).filter(Boolean);
-    if(!ids.length) throw new Error('No cloud inventory units were assigned to this sale.');
-    const r=await cl.from('inventory_units').select('id,status').in('id',ids);
-    if(r.error) throw r.error;
-    const map=new Map((r.data||[]).map(x=>[String(x.id),String(x.status||'').toUpperCase()]));
-    const notSold=ids.filter(id=>map.get(id)!=='SOLD');
-    if(notSold.length) throw new Error('Cloud sale was not confirmed. Inventory was not marked SOLD. Please do not retry until Cloud is checked.');
-  }
 
   const originalCheckout=window.checkout;
   window.checkout=async function(){
     if(window.__step115CloudSaleBusy)return;
-    if(!Array.isArray(cart)||!cart.length){
-      if(typeof originalCheckout==='function') return originalCheckout();
-      return;
-    }
+    if(!Array.isArray(cart)||!cart.length){ if(typeof originalCheckout==='function') return originalCheckout(); return; }
+
     try{
       window.__step115CloudSaleBusy=true;
+
       const disc=Math.max(0,+$('discount').value||0);
       const sub=cart.reduce((a,i)=>a+(Number(i.price)||0)*(Number(i.qty)||0),0);
       const total=Math.max(0,sub-disc);
       const cashReceived=Math.max(0,+$('cashReceived')?.value||0);
-      if(payment==='Cash'&&cashReceived<total) throw new Error('Cash received is less than the total.');
-      if(payment==='Bank Transfer'&&(!$('bankName')?.value.trim()||!$('bankReference')?.value.trim())) throw new Error('Enter bank name and transfer reference number.');
-      if(payment==='Card'&&!(selectedCardType||$('cardType')?.value)) throw new Error('Select Credit Card or Debit Card.');
+
+      if(payment==='Cash'&&cashReceived<total){
+        throw new Error('Cash received is less than the total.');
+      }
+      if(payment==='Bank Transfer'&&(!$('bankName')?.value.trim()||!$('bankReference')?.value.trim())){
+        throw new Error('Enter bank name and transfer reference number.');
+      }
+      if(payment==='Card'&&!(selectedCardType||$('cardType')?.value)){
+        throw new Error('Select Credit Card or Debit Card.');
+      }
+
+      /* Validate local cart BEFORE touching cloud */
       for(const i of cart){
         const p=products.find(x=>String(x.id)===String(i.id));
         if(!p||Number(p.stock||0)<Number(i.qty||0)) throw new Error('Insufficient local stock for '+(i.name||''));
@@ -3592,17 +3622,21 @@ function printEndOfDaySummary(){
           if(imeis.length!==Number(i.qty||0)) throw new Error('IMEI/Serial assignment is incomplete for '+(i.name||''));
         }
       }
+
       const cl=await getCloud();
       const cloudItems=await buildCloudItems(cl,cart,disc,sub);
       const cust=selectedCustomer();
       const u=getCurrentUser ? getCurrentUser() : null;
+
       const isInstallment=payment==='Installment';
       const downpayment=isInstallment?(Number(pendingFinancingSale?.downpayment)||0):0;
       const financedAmount=isInstallment?(Number(pendingFinancingSale?.financedAmount)||0):0;
-      const actualCollected=isInstallment?(Number(pendingFinancingSale?.amountReceivedToday)||downpayment):Number(total);
-      const tx='TX-'+Date.now()+'-'+Math.floor(Math.random()*1000);
+      const actualCollected=isInstallment
+        ? (Number(pendingFinancingSale?.amountReceivedToday)||downpayment)
+        : Number(total);
+
       const args={
-        p_transaction_no:tx,
+        p_transaction_no:String(Date.now()),
         p_customer_name:cust?.name||null,
         p_customer_mobile:cust?.phone||null,
         p_subtotal:Number(sub),
@@ -3616,32 +3650,36 @@ function printEndOfDaySummary(){
         p_cashier_name:currentUserLabel ? currentUserLabel() : (u?.name||'Unknown'),
         p_items:cloudItems
       };
-      if(typeof toast==='function')toast('☁️ Saving sale to Cloud…');
+
+      if(typeof toast==='function')toast('☁️ Processing Cloud Sale…');
+
       const r=await cl.rpc('process_cloud_sale',args);
       if(r.error) throw r.error;
-      await verifyCloudSale(cl,cloudItems);
 
+      /* Cloud sale succeeded. Now run the proven local checkout so
+         receipt/local history/UX stay exactly as before. */
       if(typeof originalCheckout!=='function') throw new Error('Original checkout function is unavailable.');
       await originalCheckout();
 
-      if(typeof window.step120CloudSyncNow==='function') setTimeout(()=>window.step120CloudSyncNow(),250);
-      if(typeof toast==='function')toast('✅ SALE SUCCESSFUL • Cloud inventory updated');
-      alert('✅ SALE SUCCESSFUL!\n\nCloud Inventory was updated successfully.\nThe other POS devices will sync automatically.');
+      if(typeof toast==='function')toast('☁️ Sale saved to Cloud successfully.');
     }catch(e){
-      console.error('Cloud-first sale failed:',e);
-      alert('☁️ SALE NOT COMPLETED\n\n'+(e?.message||e)+'\n\nWalang local inventory na ibinawas.');
+      console.error('Step 115 Cloud Sale failed:',e);
+      alert('☁️ CLOUD SALE NOT COMPLETED\n\n'+(e?.message||e)+'\n\nWalang binawas sa local inventory.');
     }finally{
       window.__step115CloudSaleBusy=false;
     }
   };
+
   function addIndicator(){
     const page=document.getElementById('sale');
     if(!page||document.getElementById('step115CloudSaleStatus'))return;
     const box=document.createElement('div');
-    box.id='step115CloudSaleStatus'; box.className='sub';
+    box.id='step115CloudSaleStatus';
+    box.className='sub';
     box.style.cssText='margin:8px 0;padding:9px 12px;border:1px solid #263a2b;border-radius:10px;background:#09110c;';
     box.innerHTML='☁️ <b>Cloud-First Sales:</b> Active — Admin & Cashier';
-    const h=page.querySelector('.box'); if(h)h.insertBefore(box,h.children[1]||null);
+    const h=page.querySelector('.box');
+    if(h)h.insertBefore(box,h.children[1]||null);
   }
   document.addEventListener('DOMContentLoaded',()=>setTimeout(addIndicator,400));
 })();
@@ -4061,227 +4099,40 @@ function printEndOfDaySummary(){
   setTimeout(()=>{ensureInfo();step12Refresh()},3200);
 })();
 </script>
-
-
-<script id="step120-cloud-shared-live-sync">
+<script id="cloud-shared-live-sync-v2">
 (function(){
-  /*
-    STEP 120 — Shared Cloud Live Sync
-    Cloud is the source of truth for:
-      - current IN_STOCK inventory
-      - sales + sale items
-    Every signed-in device polls Supabase and refreshes its local view.
-  */
-  let running=false;
-  let timer=null;
-  let lastFingerprint='';
-
-  function cfg(){
-    try{return JSON.parse(localStorage.getItem('4j_supabase_config')||'{}')}
-    catch(e){return {}}
-  }
-
+  const CFG='4j_supabase_config'; let busy=false;
+  function cfg(){try{return JSON.parse(localStorage.getItem(CFG)||'{}')}catch(e){return {}}}
+  function n(v){return Number(v)||0}
   async function getClient(){
-    const c=cfg();
-    if(!c.url||!c.key) throw new Error('Cloud Setup is incomplete.');
-    if(!window.supabase?.createClient) throw new Error('Supabase library did not load.');
-    const cl=window.supabase.createClient(c.url,c.key,{
-      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
-    });
-    const ses=await cl.auth.getSession();
-    if(!ses.data?.session) return null;
-    return cl;
+    const c=cfg(); if(!c.url||!c.key||!window.supabase?.createClient)return null;
+    const cl=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const s=await cl.auth.getSession(); return s.data?.session?cl:null;
   }
-
-  function num(v){return Number(v)||0}
-
-  function rebuildProducts(cloudProducts, cloudUnits){
-    const byProduct=new Map();
-    (cloudUnits||[]).forEach(u=>{
-      const k=String(u.product_id);
-      if(!byProduct.has(k)) byProduct.set(k,[]);
-      byProduct.get(k).push(u);
-    });
-
-    const restored=(cloudProducts||[]).map(p=>{
-      const units=byProduct.get(String(p.id))||[];
-      const imeis=units.map(u=>String(u.imei_serial||'').trim()).filter(Boolean);
-      const first=units[0]||{};
-      return {
-        id:String(p.id),
-        sku:String(p.sku||p.barcode||'').trim(),
-        barcode:String(p.barcode||p.sku||'').trim(),
-        brand:String(p.brand||'').trim(),
-        model:String(p.model||'').trim(),
-        variant:String(first.variant||[p.storage,p.ram,p.color].filter(Boolean).join(' / ')).trim(),
-        imei:imeis[0]||'',
-        imeis:imeis,
-        category:String(p.category||'Cellphone'),
-        supplier:String(p.supplier||'').trim(),
-        cost:num(first.cost_price??p.cost_price),
-        price:num(first.selling_price??p.selling_price),
-        stock:units.length,
-        min:num(p.low_stock_alert),
-        lowStockAlert:num(p.low_stock_alert),
-        serialTracked:Boolean(p.imei_tracking||imeis.length||/cellphone|tablet/i.test(String(p.category||''))),
-        archivedModel:Boolean(p.archived),
-        restoredFromCloud:true,
-        unitType:String(first.unit_type||'').trim(),
-        condition:String(first.unit_type||'').trim()
-      };
-    }).filter(p=>p.brand&&p.model);
-
-    return restored;
+  function status(msg,ok=true){let e=document.getElementById('cloudSharedLiveSyncStatus');if(!e){e=document.createElement('div');e.id='cloudSharedLiveSyncStatus';e.style.cssText='position:fixed;right:10px;bottom:10px;z-index:99999;padding:7px 10px;border:1px solid #263a2b;border-radius:10px;background:#09110c;font-size:11px;box-shadow:0 4px 18px rgba(0,0,0,.35)';document.body.appendChild(e)}e.textContent='☁️ '+msg;e.style.color=ok?'#38d84b':'#ff6b6b'}
+  async function inventory(cl){
+    const [p,u]=await Promise.all([
+      cl.from('products').select('id,sku,barcode,brand,model,storage,ram,color,category,supplier,cost_price,selling_price,low_stock_alert,imei_tracking,archived'),
+      cl.from('inventory_units').select('id,product_id,imei_serial,unit_type,variant,cost_price,selling_price,status,stock_in_at').eq('status','IN_STOCK').order('stock_in_at',{ascending:true})
+    ]); if(p.error)throw p.error;if(u.error)throw u.error;
+    const map=new Map();(u.data||[]).forEach(x=>{let k=String(x.product_id);if(!map.has(k))map.set(k,[]);map.get(k).push(x)});
+    const out=(p.data||[]).map(x=>{let us=map.get(String(x.id))||[],f=us[0]||{},ims=us.map(z=>String(z.imei_serial||'').trim()).filter(Boolean);return {id:String(x.id),sku:String(x.sku||x.barcode||''),barcode:String(x.barcode||x.sku||''),brand:String(x.brand||''),model:String(x.model||''),variant:String(f.variant||[x.storage,x.ram,x.color].filter(Boolean).join(' / ')),imei:ims[0]||'',imeis:ims,category:String(x.category||'Cellphone'),supplier:String(x.supplier||''),cost:n(f.cost_price??x.cost_price),price:n(f.selling_price??x.selling_price),stock:us.length,min:n(x.low_stock_alert),serialTracked:Boolean(x.imei_tracking||ims.length||/cellphone|tablet/i.test(String(x.category||''))),archivedModel:Boolean(x.archived),restoredFromCloud:true}}).filter(x=>x.brand&&x.model&&!x.archivedModel);
+    products.length=0;out.forEach(x=>products.push(x));
   }
-
-  function rebuildSales(cloudSales, saleItems){
-    const bySale=new Map();
-    (saleItems||[]).forEach(i=>{
-      const k=String(i.sale_id);
-      if(!bySale.has(k)) bySale.set(k,[]);
-      bySale.get(k).push(i);
-    });
-
-    return (cloudSales||[]).map((s,idx)=>{
-      const its=bySale.get(String(s.id))||[];
-      return {
-        id:s.transaction_no||String(s.id),
-        date:s.created_at||s.date||new Date().toISOString(),
-        payment:s.payment_method||s.payment||'',
-        total:num(s.total),
-        discount:num(s.discount),
-        customerId:'',
-        customerName:s.customer_name||'',
-        customerPhone:s.customer_mobile||'',
-        cashReceived:num(s.actual_collected),
-        change:0,
-        bank:'',
-        bankReference:'',
-        cardType:'',
-        cashier:s.cashier_name||s.cashier_username||'',
-        financingCompany:s.financing_company||'',
-        downpayment:num(s.actual_collected),
-        downpaymentPaymentMethod:s.payment_method||'',
-        financedAmount:num(s.financed_amount),
-        amountReceivedToday:num(s.actual_collected),
-        voided:String(s.status||'').toUpperCase()==='VOIDED',
-        items:its.map(i=>({
-          id:i.inventory_unit_id||i.id,
-          name:[i.brand,i.model,i.variant].filter(Boolean).join(' '),
-          sku:i.sku||'',
-          brand:i.brand||'',
-          model:i.model||'',
-          variant:i.variant||'',
-          price:num(i.unit_price||i.price),
-          cost:num(i.unit_cost||i.cost),
-          qty:1,
-          imeis:i.imei_serial?[String(i.imei_serial)]:[]
-        }))
-      };
-    });
-  }
-
-  function refreshUI(){
-    try{
-      if(typeof renderAll==='function') renderAll();
-      if(typeof step93RenderSelectedPeriod==='function') step93RenderSelectedPeriod();
-      if(typeof renderDashboardSoldUnits==='function') renderDashboardSoldUnits();
-      if(typeof updateLowStockDashboard==='function') updateLowStockDashboard();
-      if(typeof renderStockHistory==='function') renderStockHistory();
-      if(typeof renderRecentStockScans==='function') renderRecentStockScans();
-    }catch(e){console.warn('Cloud UI refresh:',e)}
-  }
-
-  async function syncNow(silent){
-    if(running) return;
-    running=true;
-    try{
-      const cl=await getClient();
-      if(!cl) return;
-
-      const [pr,ur,sr,ir]=await Promise.all([
-        cl.from('products')
-          .select('id,sku,barcode,brand,model,storage,ram,color,category,supplier,cost_price,selling_price,low_stock_alert,imei_tracking,archived')
-          .order('brand').order('model'),
-        cl.from('inventory_units')
-          .select('id,product_id,imei_serial,unit_type,variant,cost_price,selling_price,status,stock_in_at')
-          .eq('status','IN_STOCK')
-          .order('stock_in_at',{ascending:true}),
-        cl.from('sales')
-          .select('id,transaction_no,created_at,customer_name,customer_mobile,subtotal,discount,total,actual_collected,financed_amount,payment_method,financing_company,cashier_username,cashier_name,status')
-          .order('created_at',{ascending:true}),
-        cl.from('sale_items')
-          .select('id,sale_id,inventory_unit_id,sku,brand,model,variant,unit_price,unit_cost,discount,imei_serial')
-      ]);
-
-      if(pr.error) throw pr.error;
-      if(ur.error) throw ur.error;
-      if(sr.error) throw sr.error;
-      if(ir.error) throw ir.error;
-
-      const restoredProducts=rebuildProducts(pr.data||[],ur.data||[]);
-      const restoredSales=rebuildSales(sr.data||[],ir.data||[]);
-      const fp=JSON.stringify([
-        restoredProducts.map(p=>[p.id,p.stock,p.imeis]).sort(),
-        restoredSales.map(x=>[x.id,x.total,x.voided]).sort()
-      ]);
-
-      if(fp!==lastFingerprint){
-        lastFingerprint=fp;
-
-        if(Array.isArray(products)){
-          products.length=0;
-          restoredProducts.forEach(p=>products.push(p));
-        }
-        if(Array.isArray(sales)){
-          sales.length=0;
-          restoredSales.forEach(x=>sales.push(x));
-        }
-
-        try{
-          localStorage.setItem('4j_products',JSON.stringify(restoredProducts));
-          localStorage.setItem('4j_sales',JSON.stringify(restoredSales));
-        }catch(e){}
-
-        refreshUI();
-      }
-
-      const status=document.getElementById('step120CloudSyncStatus');
-      if(status){
-        status.textContent='☁️ LIVE • Cloud inventory '+(ur.data||[]).length+' in stock • '+(sr.data||[]).length+' sales';
-        status.style.color='#38d84b';
-      }
-    }catch(e){
-      console.warn('Step 120 Cloud shared sync:',e);
-      const status=document.getElementById('step120CloudSyncStatus');
-      if(status){
-        status.textContent='☁️ Cloud sync waiting: '+(e?.message||e);
-        status.style.color='#ffb84d';
-      }
-    }finally{
-      running=false;
+  async function cloudSales(cl){
+    const r=await cl.from('sales').select('*').order('created_at',{ascending:true});if(r.error)throw r.error;
+    const ids=(r.data||[]).map(x=>x.id).filter(Boolean);let its=[];
+    if(ids.length){let q=await cl.from('sale_items').select('*').in('sale_id',ids);if(q.error)throw q.error;its=q.data||[]}
+    const out=[];
+    for(const h of (r.data||[])){
+      const rows=its.filter(x=>String(x.sale_id)===String(h.id)),groups=[];
+      for(const x of rows){const key=[x.sku,x.brand,x.model,x.variant,x.unit_price,x.unit_cost].map(v=>String(v??'')).join('|');let g=groups.find(z=>z.k===key);if(!g){g={k:key,id:String(x.inventory_unit_id||''),sku:String(x.sku||''),name:(String(x.brand||'')+' '+String(x.model||'')).trim(),variant:String(x.variant||''),qty:0,price:n(x.unit_price),cost:n(x.unit_cost),imeis:[]};groups.push(g)}g.qty++;if(x.imei_serial)g.imeis.push(String(x.imei_serial))}
+      out.push({id:h.id||h.transaction_no,date:h.created_at||new Date().toISOString(),payment:h.payment_method||'Cash',total:n(h.total),discount:n(h.discount),customerId:h.customer_id||'',customerName:h.customer_name||'',customerPhone:h.customer_mobile||'',cashReceived:n(h.actual_collected),change:0,bank:h.bank_name||'',bankReference:h.bank_reference||'',items:groups.map(({k,...z})=>z),financingCompany:h.financing_company||'',downpayment:n(h.downpayment),downpaymentPaymentMethod:h.downpayment_payment_method||'',financedAmount:n(h.financed_amount),settlementBank:h.settlement_bank||'Metrobank',amountReceivedToday:n(h.actual_collected),cashier:h.cashier_name||h.cashier_username||'Unknown',transactionNo:h.transaction_no||''});
     }
+    sales.length=0;out.forEach(x=>sales.push(x));
   }
-
-  function addStatus(){
-    const page=document.getElementById('dashboard')||document.getElementById('home')||document.body;
-    if(document.getElementById('step120CloudSyncStatus')) return;
-    const box=document.createElement('div');
-    box.id='step120CloudSyncStatus';
-    box.className='sub';
-    box.style.cssText='position:fixed;right:10px;bottom:10px;z-index:9999;padding:7px 10px;border:1px solid #263a2b;border-radius:10px;background:#09110c;font-size:11px;';
-    box.textContent='☁️ Cloud sync starting…';
-    box.style.color='#7ee787';
-    document.body.appendChild(box);
-  }
-
-  window.step120CloudSyncNow=()=>syncNow(false);
-
-  document.addEventListener('DOMContentLoaded',()=>{
-    setTimeout(addStatus,1000);
-    setTimeout(()=>syncNow(true),1400);
-    timer=setInterval(()=>syncNow(true),3000);
-  });
+  async function sync(){if(busy)return;busy=true;try{let cl=await getClient();if(!cl){status('Cloud session not active');return}await inventory(cl);await cloudSales(cl);localStorage.setItem('4j_products',JSON.stringify(products));localStorage.setItem('4j_sales',JSON.stringify(sales));if(typeof renderAll==='function')renderAll();status('LIVE • shared cloud data • '+products.reduce((a,p)=>a+n(p.stock),0)+' units • '+sales.length+' sales')}catch(e){console.error(e);status('Sync error: '+(e?.message||e),false)}finally{busy=false}}
+  function start(){setTimeout(sync,1200);setInterval(sync,5000);window.addEventListener('focus',sync);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()})}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>
-
