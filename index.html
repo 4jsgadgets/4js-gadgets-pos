@@ -3383,7 +3383,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     box.innerHTML=`<h2>🛟 Fix Local Inventory</h2><div class="sub">Cloud data ang source natin. Ire-restore nito ang Cloud Products at <b>IN_STOCK</b> units pabalik sa local POS.<br><br><b>Hindi nito binubura ang Cloud data.</b> Ang <b>Upload Local → Cloud</b> sa Step 9 ay mananatili.</div><div class="cloud-sync-grid" style="margin-top:12px"><div class="sync-stat"><span class="sub">Local Products</span><b id="step117LocalProducts">0</b></div><div class="sync-stat"><span class="sub">Local Stock Units</span><b id="step117LocalUnits">0</b></div><div class="sync-stat"><span class="sub">Cloud Products</span><b id="step117CloudProducts">—</b></div><div class="sync-stat"><span class="sub">Cloud In-Stock Units</span><b id="step117CloudUnits">—</b></div></div><div class="toolbar" style="margin-top:12px"><button class="btn greenbtn" onclick="step117RestoreCloudToLocal()">☁️ Restore Cloud → Local</button><button class="btn" onclick="step117RefreshCounts()">↻ Refresh Counts</button></div><div id="step117RecoveryStatus" class="card" style="margin-top:10px;border-color:#263a2b">Status: Ready</div>`;
     const step9=document.getElementById('step109CloudSyncBox');if(step9&&step9.parentNode)step9.parentNode.insertBefore(box,step9.nextSibling);else settings.insertBefore(box,settings.firstChild);localCounts();
   }
-  async function refreshCounts(){try{const cl=await cloud();const [pr,ur]=await Promise.all([cl.from('products').select('id',{count:'exact',head:true}),cl.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK')]);if(pr.error)throw pr.error;if(ur.error)throw ur.error;document.getElementById('step117CloudProducts').textContent=pr.count??0;document.getElementById('step117CloudUnits').textContent=ur.count??0;localCounts();setStatus('Cloud counts refreshed.',true)}catch(e){setStatus(e.message||String(e),false)}}
+  async function refreshCounts(){try{const cl=await cloud();const [pr,ur]=await Promise.all([cl.from('products').select('id',{count:'exact',head:true}),cl.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK')]);if(pr.error)throw pr.error;if(ur.error)throw ur.error;ensureBox();const cp=document.getElementById('step117CloudProducts');const cu=document.getElementById('step117CloudUnits');if(cp)cp.textContent=pr.count??0;if(cu)cu.textContent=ur.count??0;localCounts();setStatus('Cloud counts refreshed.',true)}catch(e){setStatus(e.message||String(e),false)}}
   async function restore(){
     if(!confirm('Ire-restore ang Cloud Products at IN_STOCK Inventory sa local POS?\n\nHindi buburahin ang Cloud data.'))return;
     try{
@@ -3398,8 +3398,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       const restored=cloudProducts.map(p=>{const units=byProduct.get(String(p.id))||[];const imeis=units.map(u=>String(u.imei_serial||'').trim()).filter(Boolean);const first=units[0]||{};return {id:String(p.id),sku:String(p.sku||p.barcode||'').trim(),barcode:String(p.barcode||p.sku||'').trim(),brand:String(p.brand||'').trim(),model:String(p.model||'').trim(),variant:String(first.variant||[p.storage,p.ram,p.color].filter(Boolean).join(' / ')).trim(),imei:imeis[0]||'',imeis,category:String(p.category||'Cellphone'),supplier:String(p.supplier||'').trim(),cost:Number(first.cost_price??p.cost_price??0)||0,price:Number(first.selling_price??p.selling_price??0)||0,stock:units.length,min:Number(p.low_stock_alert||0)||0,serialTracked:Boolean(p.imei_tracking||imeis.length||/cellphone|tablet/i.test(String(p.category||''))),archivedModel:Boolean(p.archived),restoredFromCloud:true}}).filter(p=>p.brand&&p.model);
       localStorage.setItem('4j_products',JSON.stringify(restored));
       if(typeof products!=='undefined'){products.length=0;restored.forEach(p=>products.push(p))}
-      if(typeof save==='function')save();if(typeof renderAll==='function')renderAll();
-      localCounts();document.getElementById('step117CloudProducts').textContent=cloudProducts.length;document.getElementById('step117CloudUnits').textContent=cloudUnits.length;
+      if(typeof save==='function')save();
+      if(typeof renderAll==='function')renderAll();
+      ensureBox();
+      localCounts();
+      const cp=document.getElementById('step117CloudProducts');
+      const cu=document.getElementById('step117CloudUnits');
+      if(cp)cp.textContent=cloudProducts.length;
+      if(cu)cu.textContent=cloudUnits.length;
       setStatus(`SUCCESS — restored ${restored.length} product(s) and ${cloudUnits.length} in-stock unit(s) from Cloud.`,true);
       alert('SUCCESS!\n\n'+restored.length+' Products at '+cloudUnits.length+' IN-STOCK units ay naibalik sa local POS.');
     }catch(e){console.error(e);setStatus('Recovery failed: '+(e.message||e),false);alert('Cloud → Local recovery failed:\n\n'+(e.message||e))}
