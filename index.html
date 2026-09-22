@@ -3362,6 +3362,52 @@ document.addEventListener('DOMContentLoaded',()=>{
   setTimeout(ensureBox109,1400);
 })();
 </script>
+<script id="step117-local-inventory-recovery">
+(function(){
+  const CFG_KEY='4j_supabase_config';
+  function cfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}catch(e){return {}}}
+  async function cloud(){
+    const c=cfg();
+    if(!c.url||!c.key)throw new Error('Cloud Setup is incomplete.');
+    if(!window.supabase||!window.supabase.createClient)throw new Error('Supabase library did not load.');
+    const cl=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const s=await cl.auth.getSession();
+    if(!s.data.session)throw new Error('Cloud Admin session is not active.');
+    return cl;
+  }
+  function setStatus(msg,ok){const e=document.getElementById('step117RecoveryStatus');if(e){e.textContent='Status: '+msg;e.style.color=ok?'#38d84b':'#ff6b6b'}}
+  function localCounts(){let ps=[];try{ps=JSON.parse(localStorage.getItem('4j_products')||'[]')}catch(e){};const units=ps.reduce((n,p)=>n+Math.max(0,Number(p.stock)||0),0);const a=document.getElementById('step117LocalProducts'),b=document.getElementById('step117LocalUnits');if(a)a.textContent=ps.length;if(b)b.textContent=units}
+  function ensureBox(){
+    const settings=document.getElementById('settings');if(!settings||document.getElementById('step117RecoveryBox'))return;
+    const box=document.createElement('div');box.className='box';box.id='step117RecoveryBox';box.style.marginBottom='14px';
+    box.innerHTML=`<h2>🛟 Fix Local Inventory</h2><div class="sub">Cloud data ang source natin. Ire-restore nito ang Cloud Products at <b>IN_STOCK</b> units pabalik sa local POS.<br><br><b>Hindi nito binubura ang Cloud data.</b> Ang <b>Upload Local → Cloud</b> sa Step 9 ay mananatili.</div><div class="cloud-sync-grid" style="margin-top:12px"><div class="sync-stat"><span class="sub">Local Products</span><b id="step117LocalProducts">0</b></div><div class="sync-stat"><span class="sub">Local Stock Units</span><b id="step117LocalUnits">0</b></div><div class="sync-stat"><span class="sub">Cloud Products</span><b id="step117CloudProducts">—</b></div><div class="sync-stat"><span class="sub">Cloud In-Stock Units</span><b id="step117CloudUnits">—</b></div></div><div class="toolbar" style="margin-top:12px"><button class="btn greenbtn" onclick="step117RestoreCloudToLocal()">☁️ Restore Cloud → Local</button><button class="btn" onclick="step117RefreshCounts()">↻ Refresh Counts</button></div><div id="step117RecoveryStatus" class="card" style="margin-top:10px;border-color:#263a2b">Status: Ready</div>`;
+    const step9=document.getElementById('step109CloudSyncBox');if(step9&&step9.parentNode)step9.parentNode.insertBefore(box,step9.nextSibling);else settings.insertBefore(box,settings.firstChild);localCounts();
+  }
+  async function refreshCounts(){try{const cl=await cloud();const [pr,ur]=await Promise.all([cl.from('products').select('id',{count:'exact',head:true}),cl.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK')]);if(pr.error)throw pr.error;if(ur.error)throw ur.error;document.getElementById('step117CloudProducts').textContent=pr.count??0;document.getElementById('step117CloudUnits').textContent=ur.count??0;localCounts();setStatus('Cloud counts refreshed.',true)}catch(e){setStatus(e.message||String(e),false)}}
+  async function restore(){
+    if(!confirm('Ire-restore ang Cloud Products at IN_STOCK Inventory sa local POS?\n\nHindi buburahin ang Cloud data.'))return;
+    try{
+      setStatus('Reading Cloud inventory…',true);const cl=await cloud();
+      const [pr,ur]=await Promise.all([
+        cl.from('products').select('id,sku,barcode,brand,model,storage,ram,color,category,supplier,cost_price,selling_price,low_stock_alert,imei_tracking,archived').order('brand').order('model'),
+        cl.from('inventory_units').select('id,product_id,imei_serial,unit_type,variant,cost_price,selling_price,status,stock_in_at').eq('status','IN_STOCK').order('stock_in_at',{ascending:true})
+      ]);
+      if(pr.error)throw pr.error;if(ur.error)throw ur.error;
+      const cloudProducts=pr.data||[],cloudUnits=ur.data||[],byProduct=new Map();
+      cloudUnits.forEach(u=>{const k=String(u.product_id);if(!byProduct.has(k))byProduct.set(k,[]);byProduct.get(k).push(u)});
+      const restored=cloudProducts.map(p=>{const units=byProduct.get(String(p.id))||[];const imeis=units.map(u=>String(u.imei_serial||'').trim()).filter(Boolean);const first=units[0]||{};return {id:String(p.id),sku:String(p.sku||p.barcode||'').trim(),barcode:String(p.barcode||p.sku||'').trim(),brand:String(p.brand||'').trim(),model:String(p.model||'').trim(),variant:String(first.variant||[p.storage,p.ram,p.color].filter(Boolean).join(' / ')).trim(),imei:imeis[0]||'',imeis,category:String(p.category||'Cellphone'),supplier:String(p.supplier||'').trim(),cost:Number(first.cost_price??p.cost_price??0)||0,price:Number(first.selling_price??p.selling_price??0)||0,stock:units.length,min:Number(p.low_stock_alert||0)||0,serialTracked:Boolean(p.imei_tracking||imeis.length||/cellphone|tablet/i.test(String(p.category||''))),archivedModel:Boolean(p.archived),restoredFromCloud:true}}).filter(p=>p.brand&&p.model);
+      localStorage.setItem('4j_products',JSON.stringify(restored));
+      if(typeof products!=='undefined'){products.length=0;restored.forEach(p=>products.push(p))}
+      if(typeof save==='function')save();if(typeof renderAll==='function')renderAll();
+      localCounts();document.getElementById('step117CloudProducts').textContent=cloudProducts.length;document.getElementById('step117CloudUnits').textContent=cloudUnits.length;
+      setStatus(`SUCCESS — restored ${restored.length} product(s) and ${cloudUnits.length} in-stock unit(s) from Cloud.`,true);
+      alert('SUCCESS!\n\n'+restored.length+' Products at '+cloudUnits.length+' IN-STOCK units ay naibalik sa local POS.');
+    }catch(e){console.error(e);setStatus('Recovery failed: '+(e.message||e),false);alert('Cloud → Local recovery failed:\n\n'+(e.message||e))}
+  }
+  window.step117RestoreCloudToLocal=restore;window.step117RefreshCounts=refreshCounts;
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureBox,1200));setTimeout(ensureBox,1800);
+})();
+</script>
 </body></html>
 <script>
 function userCardAction(){
@@ -3448,131 +3494,7 @@ function printEndOfDaySummary(){
   const c=$('eodContent'); if(!c)return;
   const w=window.open('','_blank','width=700,height=800');
   if(!w){alert('Please allow pop-ups to print the summary.');return;}
-  w.document.write(`<html><head><title>4J's Gadgets - End-of-Day Summary</title><style>body{font-family:Arial;padding:24px}h1{margin-bottom:6px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{border:1px solid #ccc;border-radius:10px;padding:12px}.label{color:#666;font-size:12px}.value{font-size:22px;font-weight:700;margin-top:4px}@media print{button{display:none}}</style></head><body><h1>4J's Gadgets POS</h1><h2>End-of-Day Summary</h2><div>${c.innerHTML.replaceAll('eod-grid','grid').replaceAll('eod-card','card').replaceAll('eod-label','label').replaceAll('eod-value','value')}</div><script>window.onload=()=>window.print()<\/script>
-<style id="step116-recovery-style">
-#step116RecoveryBox .recovery-note{font-size:12px;color:#a7b1aa;line-height:1.5}
-#step116RecoveryBox .recovery-status{margin-top:10px;padding:12px;border:1px solid #263a2b;border-radius:12px;background:#09110c}
-</style>
-<script id="step116-cloud-inventory-recovery">
-(function(){
-  function cfg116(){
-    try{return JSON.parse(localStorage.getItem('4j_supabase_config')||'{}')}catch(e){return {}}
-  }
-  async function client116(){
-    const c=cfg116();
-    if(!c.url||!c.key) throw new Error('Cloud Setup is incomplete.');
-    if(!window.supabase||!window.supabase.createClient) throw new Error('Supabase library did not load.');
-    const client=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-    const sess=await client.auth.getSession();
-    if(!sess.data.session) throw new Error('Cloud Admin session is not active. Open Cloud Setup and sign in first.');
-    return client;
-  }
-  function ensure116(){
-    const settings=document.getElementById('settings');
-    if(!settings||document.getElementById('step116RecoveryBox')) return;
-    const box=document.createElement('div');
-    box.className='box'; box.id='step116RecoveryBox'; box.style.marginBottom='14px';
-    box.innerHTML=`<h2>🛟 Cloud Inventory Recovery</h2>
-      <div class="recovery-note">
-        Safe recovery tool: babasahin ang <b>IN_STOCK</b> units mula sa Supabase at ibabalik ang stock/IMEI display sa local POS.
-        Hindi nito buburahin o babaguhin ang Supabase data. Hindi rin nito gagalawin ang Sales.
-        Gamitin lamang kung nawawala ang Inventory records sa screen.
-      </div>
-      <div class="toolbar" style="margin-top:12px">
-        <button class="btn greenbtn" onclick="step116RecoverCloudInventory()">🛟 Restore Cloud Inventory → Local</button>
-      </div>
-      <div id="step116RecoveryStatus" class="recovery-status">Status: Ready</div>`;
-    const cloudBox=document.getElementById('step108CloudBox');
-    if(cloudBox&&cloudBox.parentNode) cloudBox.parentNode.insertBefore(box,cloudBox.nextSibling);
-    else settings.insertBefore(box,settings.firstChild);
-  }
-  function status116(msg,ok){
-    const e=document.getElementById('step116RecoveryStatus');
-    if(e){e.textContent='Status: '+msg;e.style.color=ok?'#38d84b':'#fff'}
-  }
-  function save116(){
-    localStorage.setItem('4j_products',JSON.stringify(products));
-  }
-  async function recover116(){
-    try{
-      const ok=confirm('Restore the current IN_STOCK cloud units to the local Inventory display?\n\nThis will update local stock counts and IMEI lists only. Supabase data will NOT be deleted or changed.');
-      if(!ok)return;
-      status116('Reading Cloud Inventory…',true);
-      const c=await client116();
-      const [pr,ur]=await Promise.all([
-        c.from('products').select('id,sku,brand,model,storage,ram,color,category,supplier,cost_price,selling_price,low_stock_alert,archived'),
-        c.from('inventory_units').select('id,product_id,imei_serial,unit_type,variant,cost_price,selling_price,status,stock_in_at').eq('status','IN_STOCK').order('stock_in_at',{ascending:true})
-      ]);
-      if(pr.error)throw pr.error;
-      if(ur.error)throw ur.error;
-      const cps=pr.data||[], units=ur.data||[];
-      if(!cps.length) throw new Error('No cloud Products found.');
-      if(!units.length) throw new Error('No IN_STOCK cloud inventory units found.');
-      const byId=new Map(cps.map(x=>[String(x.id),x]));
-      const groups=new Map();
-      for(const u of units){
-        const cp=byId.get(String(u.product_id));
-        if(!cp) continue;
-        const key=cp.sku ? 'sku:'+String(cp.sku).trim().toLowerCase() : 'bm:'+String(cp.brand||'').trim().toLowerCase()+'|'+String(cp.model||'').trim().toLowerCase();
-        if(!groups.has(key)) groups.set(key,{cp,units:[]});
-        groups.get(key).units.push(u);
-      }
-      let restored=0, matched=0, unmatched=[];
-      for(const g of groups.values()){
-        const cp=g.cp;
-        let lp=null;
-        if(cp.sku) lp=products.find(p=>String(p.sku||'').trim().toLowerCase()===String(cp.sku).trim().toLowerCase());
-        if(!lp) lp=products.find(p=>String(p.brand||'').trim().toLowerCase()===String(cp.brand||'').trim().toLowerCase() && String(p.model||'').trim().toLowerCase()===String(cp.model||'').trim().toLowerCase());
-        if(!lp){
-          lp={
-            id:String(cp.id),
-            sku:cp.sku||'',
-            barcode:cp.sku||'',
-            brand:cp.brand||'',
-            model:cp.model||'',
-            variant:[cp.storage,cp.ram,cp.color].filter(Boolean).join(' / '),
-            imei:'',
-            category:cp.category||'Cellphone',
-            supplier:cp.supplier||'',
-            cost:Number(cp.cost_price)||0,
-            price:Number(cp.selling_price)||0,
-            stock:0,
-            min:Number(cp.low_stock_alert)||0,
-            serialTracked:true,
-            createdBy:'Cloud Recovery',
-            recoveredFromCloud:true
-          };
-          products.push(lp);
-        }
-        const us=g.units;
-        lp.stock=us.length;
-        lp.imeis=us.map(u=>String(u.imei_serial||'').trim()).filter(Boolean);
-        lp.imei=lp.imeis[0]||'';
-        lp.serialTracked=true;
-        if(!lp.variant) lp.variant=[cp.storage,cp.ram,cp.color].filter(Boolean).join(' / ');
-        if(!lp.cost) lp.cost=Number(us[0]?.cost_price)||Number(cp.cost_price)||0;
-        if(!lp.price) lp.price=Number(us[0]?.selling_price)||Number(cp.selling_price)||0;
-        if(us[0]?.unit_type) lp.unitType=us[0].unit_type;
-        if(lp.archivedModel) lp.archivedModel=false;
-        restored += us.length; matched++;
-      }
-      save116();
-      if(typeof renderAll==='function') renderAll();
-      if(typeof renderInventory==='function') renderInventory();
-      status116('Recovered '+restored+' cloud unit(s) across '+matched+' product(s). Local Inventory refreshed.',true);
-      alert('SUCCESS!\n\n'+restored+' cloud inventory unit(s) restored to the local Inventory display.\n\nSupabase data was not changed.');
-    }catch(e){
-      console.error(e);
-      status116('Recovery failed: '+(e.message||e),false);
-      alert('Cloud Inventory Recovery failed:\n\n'+(e.message||e));
-    }
-  }
-  window.step116RecoverCloudInventory=recover116;
-  document.addEventListener('DOMContentLoaded',()=>setTimeout(ensure116,1200));
-  setTimeout(ensure116,1800);
-})();
-</script>
-</body></html>`);
+  w.document.write(`<html><head><title>4J's Gadgets - End-of-Day Summary</title><style>body{font-family:Arial;padding:24px}h1{margin-bottom:6px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{border:1px solid #ccc;border-radius:10px;padding:12px}.label{color:#666;font-size:12px}.value{font-size:22px;font-weight:700;margin-top:4px}@media print{button{display:none}}</style></head><body><h1>4J's Gadgets POS</h1><h2>End-of-Day Summary</h2><div>${c.innerHTML.replaceAll('eod-grid','grid').replaceAll('eod-card','card').replaceAll('eod-label','label').replaceAll('eod-value','value')}</div><script>window.onload=()=>window.print()<\/script></body></html>`);
   w.document.close();
 }
 </script>
