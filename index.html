@@ -3504,18 +3504,17 @@ function printEndOfDaySummary(){
 <script id="step115-safe-cloud-sales">
 (function(){
   const CFG_KEY='4j_supabase_config';
-  function cfg(){
-    try{return JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}catch(e){return {}}
-  }
+  function cfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'{}')}catch(e){return {}}}
   async function getCloud(){
     const c=cfg();
     if(!c.url||!c.key) throw new Error('Cloud Setup is incomplete. Please connect Supabase first.');
     if(!window.supabase?.createClient) throw new Error('Supabase library did not load.');
     const cl=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     const s=await cl.auth.getSession();
-    if(!s.data.session) throw new Error('Cloud Admin session is not active. Please sign in to Cloud Setup.');
+    if(!s.data.session) throw new Error('Cloud session is not active. Please sign in to Cloud Setup.');
     return cl;
   }
+
   async function findCloudProduct(cl,p){
     const sku=String(p?.sku||'').trim();
     if(sku){
@@ -3529,6 +3528,7 @@ function printEndOfDaySummary(){
     if(!r.data?.length) throw new Error('Cloud product not found: '+brand+' '+model);
     return r.data[0];
   }
+
   async function buildCloudItems(cl,cartItems,discount,subtotal){
     const out=[];
     for(const item of cartItems){
@@ -3590,10 +3590,36 @@ function printEndOfDaySummary(){
     return out;
   }
 
+  async function verifyAndRepairCloudUnits(cl,cloudItems){
+    const ids=cloudItems.map(x=>String(x.inventory_unit_id)).filter(Boolean);
+    if(!ids.length)return;
+    const r=await cl.from('inventory_units').select('id,status').in('id',ids);
+    if(r.error)throw r.error;
+    const rows=r.data||[];
+    const notSold=rows.filter(x=>String(x.status||'').toUpperCase()!=='SOLD');
+    if(!notSold.length)return;
+
+    // Safety repair: only units belonging to this exact sale are updated.
+    // This is used only when the RPC returned success but a unit is still IN_STOCK.
+    const u=await cl.from('inventory_units')
+      .update({status:'SOLD',sold_at:new Date().toISOString()})
+      .in('id',notSold.map(x=>x.id))
+      .eq('status','IN_STOCK')
+      .select('id,status');
+    if(u.error)throw u.error;
+    if((u.data||[]).length!==notSold.length){
+      throw new Error('Cloud inventory verification failed. Some units were not marked SOLD.');
+    }
+  }
+
   const originalCheckout=window.checkout;
+
   window.checkout=async function(){
     if(window.__step115CloudSaleBusy)return;
-    if(!Array.isArray(cart)||!cart.length){ if(typeof originalCheckout==='function') return originalCheckout(); return; }
+    if(!Array.isArray(cart)||!cart.length){
+      if(typeof originalCheckout==='function')return originalCheckout();
+      return;
+    }
 
     try{
       window.__step115CloudSaleBusy=true;
@@ -3603,37 +3629,30 @@ function printEndOfDaySummary(){
       const total=Math.max(0,sub-disc);
       const cashReceived=Math.max(0,+$('cashReceived')?.value||0);
 
-      if(payment==='Cash'&&cashReceived<total){
-        throw new Error('Cash received is less than the total.');
-      }
-      if(payment==='Bank Transfer'&&(!$('bankName')?.value.trim()||!$('bankReference')?.value.trim())){
-        throw new Error('Enter bank name and transfer reference number.');
-      }
-      if(payment==='Card'&&!(selectedCardType||$('cardType')?.value)){
-        throw new Error('Select Credit Card or Debit Card.');
-      }
+      if(payment==='Cash'&&cashReceived<total)throw new Error('Cash received is less than the total.');
+      if(payment==='Bank Transfer'&&(!$('bankName')?.value.trim()||!$('bankReference')?.value.trim()))throw new Error('Enter bank name and transfer reference number.');
+      if(payment==='Card'&&!(selectedCardType||$('cardType')?.value))throw new Error('Select Credit Card or Debit Card.');
 
-      /* Validate local cart BEFORE touching cloud */
       for(const i of cart){
         const p=products.find(x=>String(x.id)===String(i.id));
-        if(!p||Number(p.stock||0)<Number(i.qty||0)) throw new Error('Insufficient local stock for '+(i.name||''));
+        if(!p||Number(p.stock||0)<Number(i.qty||0))throw new Error('Insufficient local stock for '+(i.name||''));
         if(productIsIMEITracked(p)){
           const imeis=Array.isArray(i.imeis)?i.imeis:[];
-          if(imeis.length!==Number(i.qty||0)) throw new Error('IMEI/Serial assignment is incomplete for '+(i.name||''));
+          if(imeis.length!==Number(i.qty||0))throw new Error('IMEI/Serial assignment is incomplete for '+(i.name||''));
         }
       }
 
       const cl=await getCloud();
       const cloudItems=await buildCloudItems(cl,cart,disc,sub);
       const cust=selectedCustomer();
-      const u=getCurrentUser ? getCurrentUser() : null;
+      const u=getCurrentUser?getCurrentUser():null;
 
       const isInstallment=payment==='Installment';
       const downpayment=isInstallment?(Number(pendingFinancingSale?.downpayment)||0):0;
       const financedAmount=isInstallment?(Number(pendingFinancingSale?.financedAmount)||0):0;
       const actualCollected=isInstallment
-        ? (Number(pendingFinancingSale?.amountReceivedToday)||downpayment)
-        : Number(total);
+        ?(Number(pendingFinancingSale?.amountReceivedToday)||downpayment)
+        :Number(total);
 
       const args={
         p_transaction_no:String(Date.now()),
@@ -3647,23 +3666,32 @@ function printEndOfDaySummary(){
         p_payment_method:payment,
         p_financing_company:isInstallment?(pendingFinancingSale?.financingCompany||null):null,
         p_cashier_username:u?.name||'Unknown',
-        p_cashier_name:currentUserLabel ? currentUserLabel() : (u?.name||'Unknown'),
+        p_cashier_name:currentUserLabel?currentUserLabel():(u?.name||'Unknown'),
         p_items:cloudItems
       };
 
-      if(typeof toast==='function')toast('☁️ Processing Cloud Sale…');
+      if(typeof toast==='function')toast('☁️ Saving sale to Cloud…');
 
       const r=await cl.rpc('process_cloud_sale',args);
-      if(r.error) throw r.error;
+      if(r.error)throw r.error;
 
-      /* Cloud sale succeeded. Now run the proven local checkout so
-         receipt/local history/UX stay exactly as before. */
-      if(typeof originalCheckout!=='function') throw new Error('Original checkout function is unavailable.');
+      // Confirm the exact inventory units were actually changed in Cloud.
+      await verifyAndRepairCloudUnits(cl,cloudItems);
+
+      // Only after Cloud is confirmed, perform the existing local checkout.
+      if(typeof originalCheckout!=='function')throw new Error('Original checkout function is unavailable.');
       await originalCheckout();
 
-      if(typeof toast==='function')toast('☁️ Sale saved to Cloud successfully.');
+      // Explicitly show the receipt again using the newly-created local sale.
+      const lastSale=Array.isArray(sales)&&sales.length?sales[sales.length-1]:null;
+      if(lastSale&&typeof showReceipt==='function'){
+        showReceipt(lastSale);
+      }
+
+      if(typeof toast==='function')toast('✅ SALE SUCCESSFUL — Cloud Inventory updated.');
+      alert('SALE SUCCESSFUL!\n\nCloud Inventory updated successfully.\nThe receipt is ready to print.');
     }catch(e){
-      console.error('Step 115 Cloud Sale failed:',e);
+      console.error('Cloud Sale failed:',e);
       alert('☁️ CLOUD SALE NOT COMPLETED\n\n'+(e?.message||e)+'\n\nWalang binawas sa local inventory.');
     }finally{
       window.__step115CloudSaleBusy=false;
