@@ -2504,7 +2504,33 @@ function renderSalesHistory(){
   renderInstallmentSalesHistory();
 }
 function renderAll(){
-  step89UpdatePaymentSummary();let today=new Date().toDateString(),ts=sales.filter(s=>!s.voided&&new Date(s.date).toDateString()===today),ss=ts.reduce((a,s)=>a+s.total,0),it=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+i.qty,0),0),pr=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0)-s.discount,0);let iv=0,stockUnits=0;products.filter(p=>!isArchivedModel(p)).forEach(p=>{let total=Math.max(0,Number(p.stock)||0),im=getProductUnitIMEIs(p);stockUnits+=total;for(let idx=0;idx<total;idx++){let imei=im[idx]||'',c=unitCostPrice(p,imei);iv+=Number(c)||0;}});$('dSales').textContent=money(ss);$('dProfit').textContent=money(pr);$('dItems').textContent=it;$('dInv').textContent=money(iv);$('dTx').textContent=ts.length+' transaction(s)';$('dStock').textContent=stockUnits+' units';renderDashboardSoldUnits();updateLowStockDashboard();setTimeout(step89UpdatePaymentSummary,0);renderDashboardProducts();renderSaleProducts();renderMaster();renderInventory();renderSalesHistory();renderReports();renderCart();renderStockHistory();renderCustomers();renderCustomerOptions(true);renderInstallmentOptions();renderInstallments();['instCashPrice','instDown','instMonths'].forEach(id=>{if($(id))$(id).addEventListener('input',updateInstallmentPreview)});if(typeof step91RefreshDashboard==='function')setTimeout(()=>step91RefreshDashboard(),0)}
+  // Cloud sync can run while a page/section is not mounted. Keep one missing optional
+  // DOM element from stopping the rest of the POS refresh cycle.
+  const safe=(name,fn)=>{try{if(typeof fn==='function')fn()}catch(e){console.warn('renderAll skipped '+name,e)}};
+  safe('payment summary',step89UpdatePaymentSummary);
+  let today=new Date().toDateString(),ts=sales.filter(s=>!s.voided&&new Date(s.date).toDateString()===today),ss=ts.reduce((a,s)=>a+s.total,0),it=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+i.qty,0),0),pr=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0)-s.discount,0);
+  let iv=0,stockUnits=0;
+  products.filter(p=>!isArchivedModel(p)).forEach(p=>{let total=Math.max(0,Number(p.stock)||0),im=getProductUnitIMEIs(p);stockUnits+=total;for(let idx=0;idx<total;idx++){let imei=im[idx]||'',c=unitCostPrice(p,imei);iv+=Number(c)||0;}});
+  const set=(id,v)=>{const e=$(id);if(e)e.textContent=v};
+  set('dSales',money(ss));set('dProfit',money(pr));set('dItems',it);set('dInv',money(iv));set('dTx',ts.length+' transaction(s)');set('dStock',stockUnits+' units');
+  safe('dashboard sold units',renderDashboardSoldUnits);
+  safe('low stock dashboard',updateLowStockDashboard);
+  setTimeout(()=>safe('payment summary delayed',step89UpdatePaymentSummary),0);
+  safe('dashboard products',renderDashboardProducts);
+  safe('sale products',renderSaleProducts);
+  safe('product master',renderMaster);
+  safe('inventory',renderInventory);
+  safe('sales history',renderSalesHistory);
+  safe('reports',renderReports);
+  safe('cart',renderCart);
+  safe('stock history',renderStockHistory);
+  safe('customers',renderCustomers);
+  safe('customer options',()=>renderCustomerOptions(true));
+  safe('installment options',renderInstallmentOptions);
+  safe('installments',renderInstallments);
+  ['instCashPrice','instDown','instMonths'].forEach(id=>{const e=$(id);if(e)e.addEventListener('input',updateInstallmentPreview)});
+  if(typeof step91RefreshDashboard==='function')setTimeout(()=>safe('dashboard date refresh',step91RefreshDashboard),0);
+}
 function exportCSV(){let rows=[['Date','Transaction','Status','Payment','Card Type','Bank','Reference','SKU','Product','Qty','Price','Cost','Total']];sales.forEach(s=>s.items.forEach(i=>rows.push([s.date,s.id,s.voided?'VOIDED':'COMPLETED',s.payment,s.cardType||'',s.bank||'',s.bankReference||'',i.sku,i.name,i.qty,i.price,i.cost,s.total])));let blob=new Blob([rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='4Js_Gadgets_Sales.csv';a.click()}
 function exportBackup(){if(!requireAdmin())return;let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({products,sales,customers,installments,stockins:JSON.parse(localStorage.getItem('4j_stockins')||'[]'),installmentReceiptSeq:localStorage.getItem('4j_installment_receipt_seq')||'0'},null,2)],{type:'application/json'}));a.download='4Js_Gadgets_POS_Backup.json';a.click()}
 function restoreBackup(e){if(!requireAdmin())return;let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);products=d.products||[];sales=d.sales||[];customers=d.customers||[];installments=d.installments||[];localStorage.setItem('4j_stockins',JSON.stringify(d.stockins||[]));if(d.installmentReceiptSeq!==undefined)localStorage.setItem('4j_installment_receipt_seq',String(d.installmentReceiptSeq));save();renderAll();toast('Backup restored.')}catch(x){alert('Invalid backup file.')}};r.readAsText(f)}
@@ -3253,7 +3279,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function setSyncStatus109(msg,ok){const e=document.getElementById('step109SyncStatus');if(e){e.textContent='Status: '+msg;e.style.color=ok?'#38d84b':'#fff'}}
   async function refreshCloudCounts109(){
-    try{const c=await client109();const [p,u]=await Promise.all([c.from('products').select('id',{count:'exact',head:true}).eq('archived',false),c.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK')]);if(p.error)throw p.error;if(u.error)throw u.error;document.getElementById('step109CloudProducts').textContent=p.count??0;document.getElementById('step109CloudUnits').textContent=u.count??0;setSyncStatus109('Cloud counts refreshed.',true)}catch(e){setSyncStatus109(e.message||String(e),false)}}
+    try{const c=await client109();const [p,u]=await Promise.all([c.from('products').select('id',{count:'exact',head:true}).eq('archived',false),c.from('inventory_units').select('id, products!inner(archived)',{count:'exact',head:true}).eq('status','IN_STOCK').eq('products.archived',false)]);if(p.error)throw p.error;if(u.error)throw u.error;document.getElementById('step109CloudProducts').textContent=p.count??0;document.getElementById('step109CloudUnits').textContent=u.count??0;setSyncStatus109('Cloud counts refreshed.',true)}catch(e){setSyncStatus109(e.message||String(e),false)}}
   async function upload109(){
     const c=await client109(); const ps=localProducts109(); if(!ps.length){alert('Walang local Products na puwedeng i-upload.');return}
     const productMap=readJSON109(MAP_KEY,{}), unitMap=readJSON109(UNIT_MAP_KEY,{});
@@ -3383,7 +3409,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     box.innerHTML=`<h2>🛟 Fix Local Inventory</h2><div class="sub">Cloud data ang source natin. Ire-restore nito ang Cloud Products at <b>IN_STOCK</b> units pabalik sa local POS.<br><br><b>Hindi nito binubura ang Cloud data.</b> Ang <b>Upload Local → Cloud</b> sa Step 9 ay mananatili.</div><div class="cloud-sync-grid" style="margin-top:12px"><div class="sync-stat"><span class="sub">Local Products</span><b id="step117LocalProducts">0</b></div><div class="sync-stat"><span class="sub">Local Stock Units</span><b id="step117LocalUnits">0</b></div><div class="sync-stat"><span class="sub">Cloud Products</span><b id="step117CloudProducts">—</b></div><div class="sync-stat"><span class="sub">Cloud In-Stock Units</span><b id="step117CloudUnits">—</b></div></div><div class="toolbar" style="margin-top:12px"><button class="btn greenbtn" onclick="step117RestoreCloudToLocal()">☁️ Restore Cloud → Local</button><button class="btn" onclick="step117RefreshCounts()">↻ Refresh Counts</button></div><div id="step117RecoveryStatus" class="card" style="margin-top:10px;border-color:#263a2b">Status: Ready</div>`;
     const step9=document.getElementById('step109CloudSyncBox');if(step9&&step9.parentNode)step9.parentNode.insertBefore(box,step9.nextSibling);else settings.insertBefore(box,settings.firstChild);localCounts();
   }
-  async function refreshCounts(){try{const cl=await cloud();const [pr,ur]=await Promise.all([cl.from('products').select('id',{count:'exact',head:true}).eq('archived',false),cl.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK')]);if(pr.error)throw pr.error;if(ur.error)throw ur.error;ensureBox();const cp=document.getElementById('step117CloudProducts');const cu=document.getElementById('step117CloudUnits');if(cp)cp.textContent=pr.count??0;if(cu)cu.textContent=ur.count??0;localCounts();setStatus('Cloud counts refreshed.',true)}catch(e){setStatus(e.message||String(e),false)}}
+  async function refreshCounts(){try{const cl=await cloud();const [pr,ur]=await Promise.all([cl.from('products').select('id',{count:'exact',head:true}).eq('archived',false),cl.from('inventory_units').select('id, products!inner(archived)',{count:'exact',head:true}).eq('status','IN_STOCK').eq('products.archived',false)]);if(pr.error)throw pr.error;if(ur.error)throw ur.error;ensureBox();const cp=document.getElementById('step117CloudProducts');const cu=document.getElementById('step117CloudUnits');if(cp)cp.textContent=pr.count??0;if(cu)cu.textContent=ur.count??0;localCounts();setStatus('Cloud counts refreshed.',true)}catch(e){setStatus(e.message||String(e),false)}}
   async function restore(){
     if(!confirm('Ire-restore ang Cloud Products at IN_STOCK Inventory sa local POS?\n\nHindi buburahin ang Cloud data.'))return;
     try{
@@ -3945,7 +3971,7 @@ function printEndOfDaySummary(){
   async function refreshCloudStockIn(){
     try{
       const cl=await cloud();
-      const r=await cl.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK');
+      const r=await cl.from('inventory_units').select('id, products!inner(archived)',{count:'exact',head:true}).eq('status','IN_STOCK').eq('products.archived',false);
       if(r.error)throw r.error;
       const e=document.getElementById('step11CloudInStock');if(e)e.textContent=r.count??0;
       setStatus('Cloud stock refreshed. Local data unchanged.',true);
@@ -4083,7 +4109,7 @@ function printEndOfDaySummary(){
       const c=JSON.parse(localStorage.getItem('4j_supabase_config')||'{}');
       const cl=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
       const s=await cl.auth.getSession(); if(!s.data.session)throw new Error('Cloud Admin session is not active.');
-      const r=await cl.from('inventory_units').select('id',{count:'exact',head:true}).eq('status','IN_STOCK');
+      const r=await cl.from('inventory_units').select('id, products!inner(archived)',{count:'exact',head:true}).eq('status','IN_STOCK').eq('products.archived',false);
       if(r.error)throw r.error;
       document.getElementById('step12CloudStock').textContent=r.count??0;
       document.getElementById('step12Pending').textContent=pendingCount();
