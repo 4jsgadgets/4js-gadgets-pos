@@ -3682,12 +3682,74 @@ function printEndOfDaySummary(){
       const r=await cl.rpc('process_cloud_sale',args);
       if(r.error) throw r.error;
 
-      /* Cloud sale succeeded. Now run the proven local checkout so
+      /*
+       * Verify the cloud transaction before touching local POS data.
+       * Some older versions of the database RPC can return success while
+       * leaving the sale/inventory rows incomplete. If that happens, finish
+       * the missing cloud writes here using the exact inventory_unit_ids
+       * already validated above. This makes refresh/re-login deterministic.
+       */
+      const txn=args.p_transaction_no;
+      const saleCheck=await cl.from('sales').select('id,transaction_no').eq('transaction_no',txn).maybeSingle();
+      if(saleCheck.error) throw saleCheck.error;
+      let cloudSaleId=saleCheck.data?.id||null;
+
+      if(!cloudSaleId){
+        const saleRow={
+          transaction_no:txn,
+          customer_name:args.p_customer_name,
+          customer_mobile:args.p_customer_mobile,
+          subtotal:args.p_subtotal,
+          discount:args.p_discount,
+          total:args.p_total,
+          actual_collected:args.p_actual_collected,
+          financed_amount:args.p_financed_amount,
+          payment_method:args.p_payment_method,
+          financing_company:args.p_financing_company,
+          cashier_username:args.p_cashier_username,
+          cashier_name:args.p_cashier_name
+        };
+        const insSale=await cl.from('sales').insert(saleRow).select('id').single();
+        if(insSale.error) throw insSale.error;
+        cloudSaleId=insSale.data.id;
+      }
+
+      const itemCheck=await cl.from('sale_items').select('id').eq('sale_id',cloudSaleId);
+      if(itemCheck.error) throw itemCheck.error;
+      if(!itemCheck.data?.length){
+        const itemRows=cloudItems.map((x,idx)=>({
+          sale_id:cloudSaleId,
+          inventory_unit_id:x.inventory_unit_id,
+          sku:x.sku,
+          brand:x.brand,
+          model:x.model,
+          variant:x.variant,
+          unit_price:x.unit_price,
+          unit_cost:x.unit_cost,
+          discount:x.discount,
+          imei_serial:(cart.flatMap(i=>Array.isArray(i.imeis)?i.imeis:[])[idx]||null)
+        }));
+        if(itemRows.length){
+          const insItems=await cl.from('sale_items').insert(itemRows);
+          if(insItems.error) throw insItems.error;
+        }
+      }
+
+      /* Ensure every unit committed by this sale is no longer IN_STOCK. */
+      const unitIds=cloudItems.map(x=>x.inventory_unit_id).filter(Boolean);
+      if(unitIds.length){
+        const unitUpdate=await cl.from('inventory_units').update({status:'SOLD'}).in('id',unitIds).eq('status','IN_STOCK');
+        if(unitUpdate.error) throw unitUpdate.error;
+      }
+
+      /* Cloud is now verified. Run the proven local checkout so
          receipt/local history/UX stay exactly as before. */
       if(typeof originalCheckout!=='function') throw new Error('Original checkout function is unavailable.');
       await originalCheckout();
 
-      if(typeof toast==='function')toast('☁️ Sale saved to Cloud successfully.');
+      /* Immediately reload the authoritative Cloud state. */
+      if(typeof window.__refreshCloudSharedNow==='function') await window.__refreshCloudSharedNow();
+      if(typeof toast==='function')toast('☁️ Sale saved to Cloud successfully. Inventory updated.');
     }catch(e){
       console.error('Step 115 Cloud Sale failed:',e);
       alert('☁️ CLOUD SALE NOT COMPLETED\n\n'+(e?.message||e)+'\n\nWalang binawas sa local inventory.');
@@ -4167,6 +4229,7 @@ function printEndOfDaySummary(){
     sales.length=0;out.forEach(x=>sales.push(x));
   }
   async function sync(){if(busy)return;busy=true;try{let cl=await getClient();if(!cl){status('Cloud session not active');return}await inventory(cl);await cloudSales(cl);localStorage.setItem('4j_products',JSON.stringify(products));localStorage.setItem('4j_sales',JSON.stringify(sales));if(typeof renderAll==='function')renderAll();if(typeof step91RefreshDashboard==='function')setTimeout(()=>step91RefreshDashboard(),0);status('LIVE • shared cloud data • '+products.reduce((a,p)=>a+n(p.stock),0)+' units • '+sales.length+' sales')}catch(e){console.error(e);status('Sync error: '+(e?.message||e),false)}finally{busy=false}}
+  window.__refreshCloudSharedNow=sync;
   function start(){setTimeout(sync,1200);setInterval(sync,5000);window.addEventListener('focus',sync);document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
