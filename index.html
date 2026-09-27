@@ -2346,7 +2346,8 @@ function renderSaleProducts(){
 }
 async function voidSale(id){
   const u=getCurrentUser();
-  if(!u || (u.role!=='Admin' && u.role!=='Cashier')){
+  const role=String((u?.role)||localStorage.getItem('4j_cloud_role')||'').trim().toLowerCase();
+  if(!['admin','cashier'].includes(role)){
     alert('Admin or Cashier login required to void a sale.'); return;
   }
   const sale=sales.find(x=>String(x.id)===String(id));
@@ -2539,7 +2540,8 @@ function renderSalesHistory(){
     ['Transactions',String(rows.length)],['Sales',money(total)],['Profit',money(profit)],['Units Sold',String(units)]
   ].map(x=>`<div class="card"><div class="label">${x[0]}</div><div class="val">${x[1]}</div></div>`).join('');
   if(!rows.length){list.innerHTML='<div class="sub" style="padding:16px 0">No sales found.</div>';if(typeof renderInstallmentSalesHistory==='function')renderInstallmentSalesHistory();return;}
-  const canVoid=['Admin','Cashier'].includes(getCurrentUser()?.role);
+  const currentRole=String((getCurrentUser()?.role)||localStorage.getItem('4j_cloud_role')||'').trim().toLowerCase();
+  const canVoid=['admin','cashier'].includes(currentRole);
   list.innerHTML=rows.map(s=>{
     const statusText=s.voided?'VOIDED':'COMPLETED';
     const itemHtml=(s.items||[]).map(i=>{
