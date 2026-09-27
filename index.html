@@ -2355,15 +2355,22 @@ async function voidSale(id){
   if(!confirm('VOID transaction #'+(sale.transactionNo||sale.id)+'?\n\nThe sale will be permanently removed from Sales History and the sold unit(s) will be returned to inventory.'))return;
 
   // Use the same Cloud configuration key used by the shared Cloud Sync layer.
+  // Use the exact same Cloud defaults as the shared Cloud Sync layer.
+  // The Cashier may have a valid persisted Supabase session even when the
+  // older local config key is absent, so do not block Void on that old key.
   const cfg=(()=>{
+    const DEFAULT_URL='https://byuqlrwxrvmabvbykcvz.supabase.co';
+    const DEFAULT_KEY='sb_publishable_e1kDtyf858khhL5Udmxtwg_91cfscy5';
     try{
       const a=JSON.parse(localStorage.getItem('4j_supabase_config_v5')||'{}');
-      if(a && a.url && a.key)return a;
       const b=JSON.parse(localStorage.getItem('4j_supabase_config')||'{}');
-      return (b && b.url && b.key)?b:a||{};
-    }catch(e){return {}}
+      return {
+        url:(a?.url||b?.url||DEFAULT_URL).replace(/\/$/,''),
+        key:a?.key||b?.key||DEFAULT_KEY
+      };
+    }catch(e){return {url:DEFAULT_URL,key:DEFAULT_KEY}}
   })();
-  if(!cfg.url||!cfg.key||!window.supabase?.createClient){alert('VOID FAILED: Cloud is not configured. No local changes were made.');return;}
+  if(!window.supabase?.createClient){alert('VOID FAILED: Supabase library did not load. No local changes were made.');return;}
 
   try{
     if(typeof toast==='function')toast('☁️ Voiding sale in Cloud…');
