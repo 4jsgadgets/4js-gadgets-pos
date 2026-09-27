@@ -2359,21 +2359,89 @@ function renderSaleProducts(){
     return `<div class="cartitem"><div><b>${esc(label)}</b><br><span class="sub small">${esc(sub)} • Stock ${r.stock}</span></div><button class="btn greenbtn" ${disabled?'disabled':''} ${action}>${r.inCart?'✓ In Cart':'＋ Add'}</button></div>`;
   }).join(''):'<p class="sub">No matching products.</p>';
 }
-function voidSale(id){
+async function voidSale(id){
   const u=getCurrentUser();
   if(!u || (u.role!=='Admin' && u.role!=='Cashier')){
-    alert('Admin or Cashier login required to void a sale.');
-    return;
+    alert('Admin or Cashier login required to void a sale.'); return;
   }
-  let sale=sales.find(x=>String(x.id)===String(id));if(!sale)return;
-  if(sale.voided)return alert('This transaction is already voided.');
-  if(!confirm('Void transaction #'+sale.id+'? The sold stock will be returned to inventory and this transaction will remain in history as VOIDED.'))return;
-  sale.items.forEach(i=>{
-    let p=products.find(x=>String(x.id)===String(i.id));if(!p)return;
-    p.stock+=i.qty;
-    if(i.imeis&&i.imeis.length)p.imeis=getProductUnitIMEIs(p).concat(i.imeis);
-  });
-  sale.voided=true;sale.voidDate=new Date().toISOString();save();logActivity('Sale Voided',money(sale.total)+' • Transaction #'+sale.id);renderAll();toast('Transaction voided and stock restored.');
+  const sale=sales.find(x=>String(x.id)===String(id));
+  if(!sale)return alert('Sale not found.');
+  if(!confirm('VOID transaction #'+(sale.transactionNo||sale.id)+'?\n\nThe sale will be permanently removed from Sales History and the sold unit(s) will be returned to inventory.'))return;
+
+  const cfg=(()=>{try{return JSON.parse(localStorage.getItem('4j_supabase_config')||'{}')}catch(e){return {}}})();
+  if(!cfg.url||!cfg.key||!window.supabase?.createClient){alert('VOID FAILED: Cloud is not configured. No local changes were made.');return;}
+
+  try{
+    if(typeof toast==='function')toast('☁️ Voiding sale in Cloud…');
+    const cl=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    const sess=await cl.auth.getSession();
+    if(!sess.data?.session)throw new Error('Cloud session is not active.');
+
+    // Resolve the authoritative Cloud sale by UUID first, then transaction number.
+    let cloudSaleId=null;
+    let q=cl.from('sales').select('id,transaction_no').limit(1);
+    if(sale.transactionNo) q=q.eq('transaction_no',String(sale.transactionNo));
+    else q=q.eq('id',String(sale.id));
+    const sr=await q.maybeSingle();
+    if(sr.error)throw sr.error;
+    cloudSaleId=sr.data?.id||null;
+    if(!cloudSaleId){
+      const byId=await cl.from('sales').select('id,transaction_no').eq('id',String(sale.id)).maybeSingle();
+      if(byId.error)throw byId.error;
+      cloudSaleId=byId.data?.id||null;
+    }
+    if(!cloudSaleId)throw new Error('Cloud sale record was not found. No local changes were made.');
+
+    const ir=await cl.from('sale_items').select('id,inventory_unit_id').eq('sale_id',cloudSaleId);
+    if(ir.error)throw ir.error;
+    const unitIds=[...new Set((ir.data||[]).map(x=>x.inventory_unit_id).filter(Boolean).map(String))];
+
+    // Restore the exact units first.
+    for(const uid of unitIds){
+      const ur=await cl.from('inventory_units').update({status:'IN_STOCK',sold_at:null}).eq('id',uid);
+      if(ur.error)throw ur.error;
+    }
+
+    // Remove child rows, then the parent sale.
+    const di=await cl.from('sale_items').delete().eq('sale_id',cloudSaleId);
+    if(di.error)throw di.error;
+    const ds=await cl.from('sales').delete().eq('id',cloudSaleId);
+    if(ds.error)throw ds.error;
+
+    // Verify Cloud deletion/restoration before touching local state.
+    const verifySale=await cl.from('sales').select('id').eq('id',cloudSaleId).maybeSingle();
+    if(verifySale.error)throw verifySale.error;
+    if(verifySale.data)throw new Error('Cloud sale was not deleted. Local data was not changed.');
+    if(unitIds.length){
+      const verifyUnits=await cl.from('inventory_units').select('id,status').in('id',unitIds);
+      if(verifyUnits.error)throw verifyUnits.error;
+      const bad=(verifyUnits.data||[]).filter(x=>x.status!=='IN_STOCK');
+      if(bad.length)throw new Error('Cloud inventory was not fully restored. Local data was not changed.');
+    }
+
+    // Cloud is authoritative and verified. Now remove local/cache copies.
+    sales=sales.filter(x=>String(x.id)!==String(sale.id));
+    localStorage.setItem('4j_sales',JSON.stringify(sales));
+    try{
+      const key='4j_cloud_sales_cache_v2';
+      const c=JSON.parse(localStorage.getItem(key)||'{}')||{};
+      const arr=(Array.isArray(c.sales)?c.sales:[]).filter(x=>String(x.id)!==String(sale.id) && String(x.id)!==String(cloudSaleId));
+      const last=arr.map(x=>x?.date).filter(Boolean).sort().pop()||'';
+      localStorage.setItem(key,JSON.stringify({sales:arr,lastCreatedAt:last}));
+    }catch(e){}
+
+    // Do not manually add stock: Cloud sync will rebuild local stock from IN_STOCK units.
+    if(typeof logActivity==='function')logActivity('Sale Voided',money(sale.total)+' • Transaction #'+(sale.transactionNo||sale.id));
+    if(typeof window.__refreshCloudSharedNow==='function')await window.__refreshCloudSharedNow();
+    if(typeof renderAll==='function')renderAll();
+    if(typeof step91RefreshDashboard==='function')step91RefreshDashboard();
+    if(typeof step93RenderSelectedPeriod==='function')step93RenderSelectedPeriod();
+    if(typeof toast==='function')toast('☁️ Sale voided. Inventory restored.');
+    alert('VOID SUCCESS!\n\nSale removed from Sales History and inventory restored.');
+  }catch(e){
+    console.error('Cloud void failed:',e);
+    alert('VOID FAILED.\n\nNo local changes were saved.\n\n'+(e?.message||e));
+  }
 }
 function reportDateInRange(dateStr){
   let d=new Date(dateStr), from=$('reportFrom')?.value||'', to=$('reportTo')?.value||'';
@@ -4270,4 +4338,4 @@ function printEndOfDaySummary(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>
-\n<script id="cloud-void-sale-v10">\n(function(){\n  async function cloudClientV10(){\n    let c={}; try{c=JSON.parse(localStorage.getItem('4j_supabase_config')||'{}')}catch(e){}\n    if(!c.url||!c.key||!window.supabase?.createClient) throw new Error('Cloud connection is not configured.');\n    const cl=window.supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});\n    const ss=await cl.auth.getSession();\n    if(!ss.data?.session) throw new Error('Cloud session is not active.');\n    return cl;\n  }\n  function removeSaleFromCachesV10(id){\n    const sid=String(id);\n    const filtered=(Array.isArray(window.sales)?window.sales:sales).filter(x=>String(x.id)!==sid);\n    sales.length=0; filtered.forEach(x=>sales.push(x));\n    localStorage.setItem('4j_sales',JSON.stringify(sales));\n    try{\n      const key='4j_cloud_sales_cache_v2';\n      const c=JSON.parse(localStorage.getItem(key)||'{}')||{};\n      const arr=(Array.isArray(c.sales)?c.sales:[]).filter(x=>String(x.id)!==sid);\n      const last=arr.map(x=>x?.date).filter(Boolean).sort().pop()||'';\n      localStorage.setItem(key,JSON.stringify({sales:arr,lastCreatedAt:last}));\n    }catch(e){}\n  }\n  window.voidSale=async function(id){\n    const u=getCurrentUser();\n    if(!u || (u.role!=='Admin' && u.role!=='Cashier')){alert('Admin or Cashier login required to void a sale.');return;}\n    const sale=sales.find(x=>String(x.id)===String(id));\n    if(!sale)return alert('Sale not found.');\n    if(!confirm('VOID transaction #'+(sale.transactionNo||sale.id)+'?\\n\\nThe sale will be removed from Sales History and its sold unit(s) will be returned to Cloud Inventory.'))return;\n    try{\n      if(typeof toast==='function')toast('Voiding sale in Cloud…');\n      const cl=await cloudClientV10();\n      let items=await cl.from('sale_items').select('id,inventory_unit_id,imei_serial').eq('sale_id',sale.id);\n      if(items.error)throw items.error;\n      const unitIds=[...new Set((items.data||[]).map(x=>x.inventory_unit_id).filter(Boolean).map(String))];\n      // Restore physical units first. If a later delete fails, roll them back to SOLD.\n      const restored=[];\n      try{\n        for(const uid of unitIds){\n          const r=await cl.from('inventory_units').update({status:'IN_STOCK',sold_at:null}).eq('id',uid);\n          if(r.error)throw r.error; restored.push(uid);\n        }\n        const di=await cl.from('sale_items').delete().eq('sale_id',sale.id);\n        if(di.error)throw di.error;\n        const ds=await cl.from('sales').delete().eq('id',sale.id);\n        if(ds.error)throw ds.error;\n      }catch(e){\n        // Best-effort rollback so stock is not duplicated when the sale could not be removed.\n        for(const uid of restored){try{await cl.from('inventory_units').update({status:'SOLD'}).eq('id',uid)}catch(_){} }\n        throw e;\n      }\n      removeSaleFromCachesV10(sale.id);\n      if(typeof logActivity==='function')logActivity('Sale Voided',money(sale.total)+' • Transaction #'+(sale.transactionNo||sale.id));\n      if(typeof renderAll==='function')renderAll();\n      if(typeof step91RefreshDashboard==='function')step91RefreshDashboard();\n      if(typeof step93RenderSelectedPeriod==='function')step93RenderSelectedPeriod();\n      if(typeof window.__refreshCloudSharedNow==='function')await window.__refreshCloudSharedNow();\n      if(typeof toast==='function')toast('Sale voided. Stock returned to Cloud Inventory.');\n      alert('VOID SUCCESS!\\n\\nSale removed from Sales History and sold stock returned to inventory.');\n    }catch(e){\n      console.error('Cloud void failed',e);\n      alert('VOID FAILED. No local-only void was saved.\\n\\n'+(e?.message||e));\n    }\n  };\n})();\n</script>\n</body></html>
+\n</body></html>
