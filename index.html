@@ -114,6 +114,15 @@
 .bank-amount{font-size:28px;font-weight:900;text-align:center;margin:8px 0 14px}
 .bank-modal-actions{display:flex;gap:8px;margin-top:12px}
 .bank-modal-actions button{flex:1}
+
+<style id="stock-in-imei-below-actions">
+.stockScanBar{display:flex;gap:8px;flex-wrap:wrap}
+.stockScanBar .btn{flex:1 1 180px}
+.step103-imei-entry{margin-top:12px}
+.step103-imei-entry label{display:block;font-size:12px;font-weight:900;margin-bottom:6px}
+.step103-imei-entry input{width:100%;box-sizing:border-box}
+</style>
+
 </style>
 </style>
 </style>
@@ -741,9 +750,12 @@
         <span class="scannerReady">● Scanner Ready</span>
       </div>
       <div class="stockScanBar">
-        <input id="stockScanCode" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Scan OR type IMEI / Serial / barcode..." onkeydown="if(event.key==='Enter')processStockScan(this.value)">
         <button class="btn greenbtn" onclick="scanCamera('stockin')">📷 Camera</button>
         <button class="btn" onclick="processStockScan(document.getElementById('stockScanCode').value)">⌨️ Enter Manually</button>
+      </div>
+      <div class="step103-imei-entry">
+        <label for="stockScanCode">IMEI / SERIAL / BARCODE</label>
+        <input id="stockScanCode" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Scan OR type IMEI / Serial / barcode..." onkeydown="if(event.key==='Enter')processStockScan(this.value)">
       </div>
       <div class="stockScanHint">Supports 1D/2D barcode, QR code and IMEI. If the camera/scanner cannot read the IMEI clearly, <b>type the IMEI / Serial manually in the same field</b> and tap “Enter Manually”. USB/Bluetooth scanners are also supported.</div>
       <div id="stockScanStatus" class="stockScanStatus sub"></div>
