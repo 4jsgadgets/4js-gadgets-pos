@@ -2307,7 +2307,7 @@ function showSoldUnitDetails(saleId,itemIndex,unitIndex){
 }
 function showReceiptById(id){const s=sales.find(x=>String(x.id)===String(id));if(!s)return;closeSoldUnitDetails();showReceipt(s)}
 function closeSoldUnitDetails(){$('soldUnitModal')?.classList.remove('show')}
-function renderDashboardProducts(){let q=($('dashSearch')?.value||'').toLowerCase();let arr=products.filter(p=>!q||[p.sku,p.brand,p.model,p.variant,p.imei].join(' ').toLowerCase().includes(q)).slice(0,12);$('dashProducts').innerHTML=arr.length?arr.map(p=>`<div class="cartitem"><div><b>${esc(p.brand)} ${esc(p.model)}</b><br><span class="sub small">${esc(p.sku)} • ${esc(p.variant)} • Stock ${p.stock}</span></div><button class="btn greenbtn" onclick="addById('${p.id}')">＋</button></div>`).join(''):'<p class="sub">No products.</p>'}
+function renderDashboardProducts(){const box=$('dashProducts');if(!box)return;let q=($('dashSearch')?.value||'').toLowerCase();let arr=products.filter(p=>!q||[p.sku,p.brand,p.model,p.variant,p.imei].join(' ').toLowerCase().includes(q)).slice(0,12);box.innerHTML=arr.length?arr.map(p=>`<div class="cartitem"><div><b>${esc(p.brand)} ${esc(p.model)}</b><br><span class="sub small">${esc(p.sku)} • ${esc(p.variant)} • Stock ${p.stock}</span></div><button class="btn greenbtn" onclick="addById('${p.id}')">＋</button></div>`).join(''):'<p class="sub">No products.</p>'}
 function renderSaleProducts(){
   let q=($('saleCode')?.value||'').toLowerCase().trim();
   let rows=[];
