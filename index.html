@@ -669,7 +669,7 @@
 <main class="main"><div class="top"><div><div class="title">4J'S GADGETS POS</div><div class="sub">CELL PHONES • ACCESSORIES • GADGETS • INSTALLMENT</div></div><div class="user userclick" onclick="logoutPOS()" title="Tap to logout"><b id="topUserName">● Admin</b><br><span class="sub" id="topUserRole">Cashier</span></div></div>
 <section id="dashboard" class="page active"><div class="cards"><div class="card"><div class="label">Today's Sales</div>
 
-<div class="val green" id="dSales">₱0.00</div><div class="sub" id="dTx">0 transaction(s)</div></div><div class="card"><div class="label">Today's Profit</div><div class="val" id="dProfit">₱0.00</div><div class="sub">Gross profit</div></div><div class="card"><div class="label">Items Sold</div><div class="val" id="dItems">0</div><div class="sub">units</div></div><div class="card"><div class="label">Inventory Cost Value</div><div class="val" id="dInv">₱0.00</div><div class="sub" id="dStock">0 units</div></div><div class="card lowstock-card" style="cursor:pointer" onclick="showLowStockDashboard()"><div class="label">⚠️ Low Stock</div><div class="val" id="dLowStock">0</div><div class="sub">Tap to view</div></div></div><div id="step91DatePanel" class="step91-date-panel">
+<div class="val green" id="dSales">₱0.00</div><div class="sub" id="dTx">0 transaction(s)</div></div><div class="card"><div class="label">Today's Profit</div><div class="val" id="dProfit">₱0.00</div><div class="sub">Gross profit</div></div><div class="card"><div class="label">Items Sold</div><div class="val" id="dItems">0</div><div class="sub">units</div></div><div class="card"><div class="label">Inventory Cost Value</div><div class="val" id="dInv">₱0.00</div><div class="sub" id="dStock">0 units</div></div><div class="card lowstock-card" style="cursor:pointer" onclick="showLowStockDashboard()"><div class="label">⚠️ Low Stock</div><div class="val" id="dLowStock">0</div><div class="sub">Tap to view</div></div><div class="card lowstock-card" style="cursor:pointer" onclick="showOutOfStockDashboard()"><div class="label">🚫 Out of Stock</div><div class="val" id="dOutStock">0</div><div class="sub">Tap to view</div></div></div><div id="step91DatePanel" class="step91-date-panel">
   <div style="font-size:19px;font-weight:900;margin-bottom:10px">📅 Sales & Profit by Date</div>
   <div class="step91-date-row">
     <div class="step91-date-field">
@@ -1898,9 +1898,34 @@ function getLowStockItems(){
     .sort((a,b)=>a.name.localeCompare(b.name));
 }
 
+function getOutOfStockItems(){
+  const map={};
+  (Array.isArray(products)?products.filter(p=>!isArchivedModel(p)):[]).forEach(p=>{
+    const model=String(p.model||'').trim();
+    const key=model || String(p.sku||p.id||p.name||'').trim();
+    if(!key)return;
+    const stock=Math.max(0,Number(p.stock)||0);
+    if(!map[key])map[key]={model:model||p.name||key,stock:0,brand:String(p.brand||'').trim(),variant:String(p.variant||'').trim()};
+    map[key].stock+=stock;
+  });
+  return Object.values(map)
+    .filter(x=>x.stock<=0)
+    .map(x=>({
+      name:[x.brand,x.model].filter(Boolean).join(' ')||x.model,
+      model:x.model,
+      sku:x.variant||'-',
+      stock:0,
+      alert:1,
+      category:'Model'
+    }))
+    .sort((a,b)=>a.name.localeCompare(b.name));
+}
+
 function updateLowStockDashboard(){
   const n=getLowStockItems().length;
+  const o=getOutOfStockItems().length;
   if($('dLowStock'))$('dLowStock').textContent=String(n);
+  if($('dOutStock'))$('dOutStock').textContent=String(o);
 }
 function showLowStockDashboard(){
   const items=getLowStockItems();
@@ -1913,6 +1938,18 @@ function showLowStockDashboard(){
       <div class="sub small" style="margin-top:5px">Stock: ${x.stock} • Alert level: ${x.alert} • ${esc(String(x.category))}</div>
       <div style="margin-top:9px"><button class="btn red" onclick="deleteInventoryModel('${String(x.model||x.name).replace(/'/g,"\'")}');">🗑 Delete Model</button></div>
     </div>`).join(''):'<p class="sub">No low-stock items right now.</p>';
+  $('lowStockModal').classList.add('show');
+}
+function showOutOfStockDashboard(){
+  const items=getOutOfStockItems();
+  $('lowStockContent').innerHTML=items.length?items.map(x=>`
+    <div class="saleCard" style="margin-top:8px">
+      <div class="saleTop">
+        <div><b>${esc(x.name)}</b><div class="sub small">${esc(x.variant)} • SKU ${esc(String(x.sku))}</div></div>
+        <b style="color:#ff8a8a">0</b>
+      </div>
+      <div class="sub small" style="margin-top:5px">Stock: 0 • OUT OF STOCK • ${esc(String(x.category))}</div>
+    </div>`).join(''):'<p class="sub">No out-of-stock items right now.</p>';
   $('lowStockModal').classList.add('show');
 }
 function closeLowStock(){$('lowStockModal')?.classList.remove('show')}
