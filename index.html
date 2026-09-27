@@ -1070,7 +1070,7 @@ function clearProductForm(){['sku','brand','model','variant','imei','supplier','
 function saveProduct(){let id=$('editId').value;let p={id:id||String(Date.now()+Math.random()),sku:$('sku').value.trim(),brand:$('brand').value.trim(),model:$('model').value.trim(),variant:$('variant').value.trim(),imei:$('imei').value.trim(),category:$('category').value,supplier:$('supplier').value.trim(),cost:+$('cost').value||0,price:+$('price').value||0,stock:Math.max(0,+$('qty').value||0),min:Math.max(0,+$('minStock').value||0),serialTracked:$('serialTracked').checked};if(!p.sku||!p.brand||!p.model||p.price<=0)return alert('SKU/Barcode, Brand, Model and Selling Price are required.');let dup=products.find(x=>x.sku.toLowerCase()===p.sku.toLowerCase()&&String(x.id)!==String(id));if(dup)return alert('SKU/Barcode already exists.');if(id){let old=products.find(x=>String(x.id)===String(id));p.stock=old.stock;p.updatedBy=currentUserLabel();products[products.findIndex(x=>String(x.id)===String(id))]=p;logActivity('Product Updated',p.brand+' '+p.model+' • '+p.sku);toast('Product updated.')}else{p.createdBy=currentUserLabel();products.push(p);logActivity('Product Added',p.brand+' '+p.model+' • '+p.sku);toast('Product saved.')}save();clearProductForm();renderAll()}
 function editProduct(id){let p=products.find(x=>String(x.id)===String(id));if(!p)return;Object.entries({sku:p.sku,brand:p.brand,model:p.model,variant:p.variant,imei:p.imei,supplier:p.supplier,cost:p.cost,price:p.price,qty:p.stock,minStock:p.min,editId:p.id}).forEach(([k,v])=>$(k).value=v);$('category').value=p.category;$('serialTracked').checked=!!p.serialTracked;showPage('products');window.scrollTo({top:0,behavior:'smooth'})}
 function deleteProduct(id){if(!requireAdmin())return;if(!confirm('Delete this product?'))return;let dp=products.find(x=>String(x.id)===String(id));products=products.filter(x=>String(x.id)!==String(id));save();logActivity('Product Deleted',dp?(dp.brand+' '+dp.model+' • '+dp.sku):String(id));renderAll();toast('Product deleted.')}
-function status(p){return p.stock<=0?'out':p.stock<=p.min?'low':'ok'}
+function status(p){const stock=Number(p?.stock)||0;return stock<=0?'out':stock<=1?'low':'ok'}
 function statusTag(p){let s=status(p);return `<span class="tag ${s}">${s==='out'?'OUT OF STOCK':s==='low'?'LOW STOCK':'IN STOCK'}</span>`}
 function renderMaster(){let q=($('prodSearch')?.value||'').toLowerCase(),c=$('prodCategory')?.value||'';let arr=products.filter(p=>(!q||[p.sku,p.brand,p.model,p.variant,p.imei,p.supplier].join(' ').toLowerCase().includes(q))&&(!c||p.category===c));$('master').innerHTML=arr.length?`<div class="tablewrap"><table class="table"><tr><th>SKU</th><th>Product</th><th>IMEI/Serial</th><th>Cost</th><th>Price</th><th>Stock</th><th>Status</th><th>Action</th></tr>${arr.map(p=>`<tr><td><b>${esc(p.sku)}</b></td><td>${esc(p.brand)} ${esc(p.model)}<br><span class="sub small">${esc(p.variant)} • ${esc(p.category)}</span></td><td>${getProductUnitIMEIs(p).length?getProductUnitIMEIs(p).map(esc).join('<br>'):esc(p.imei||'-')}</td><td>${money(p.cost)}</td><td>${money(p.price)}</td><td>${p.stock}</td><td>${statusTag(p)}</td><td><button class="btn" onclick="editProduct('${p.id}')">Edit</button> <button class="btn red" onclick="deleteProduct('${p.id}')">Delete</button></td></tr>`).join('')}</table></div>`:'<p class="sub">No products yet.</p>'}
 function renderInventoryBrandSummary(){
@@ -1878,20 +1878,21 @@ function getLowStockItems(){
     const key=model || String(p.sku||p.id||p.name||'').trim();
     if(!key)return;
     const stock=Math.max(0,Number(p.stock)||0);
-    const alert=Number(p.lowStockAlert??p.lowStock??p.reorderLevel??0)||0;
-    if(!map[key])map[key]={model:model||p.name||key,stock:0,alert:0,brand:String(p.brand||'').trim(),variant:String(p.variant||'').trim()};
+    // Low-stock threshold is intentionally fixed at 1 unit for every product/model.
+    // This makes any model with exactly 1 unit immediately appear in Low Stock.
+    const alert=1;
+    if(!map[key])map[key]={model:model||p.name||key,stock:0,alert:1,brand:String(p.brand||'').trim(),variant:String(p.variant||'').trim()};
     map[key].stock+=stock;
-    map[key].alert=Math.max(map[key].alert,alert);
   });
 
   return Object.values(map)
-    .filter(x=>x.alert>0 && x.stock<=x.alert)
+    .filter(x=>x.stock>0 && x.stock<=1)
     .map(x=>({
       name:[x.brand,x.model].filter(Boolean).join(' ')||x.model,
       model:x.model,
       sku:x.variant||'-',
       stock:x.stock,
-      alert:x.alert,
+      alert:1,
       category:'Model'
     }))
     .sort((a,b)=>a.name.localeCompare(b.name));
