@@ -2465,7 +2465,7 @@ function renderSalesHistory(){
   $('salesHistorySummary').innerHTML=[
     ['Transactions',String(rows.length)],['Sales',money(total)],['Profit',money(profit)],['Units Sold',String(units)]
   ].map(x=>`<div class="card"><div class="label">${x[0]}</div><div class="val">${x[1]}</div></div>`).join('');
-  if(!rows.length){list.innerHTML='<div class="sub" style="padding:16px 0">No sales found.</div>';renderInstallmentSalesHistory();return;}
+  if(!rows.length){list.innerHTML='<div class="sub" style="padding:16px 0">No sales found.</div>';if(typeof renderInstallmentSalesHistory==='function')renderInstallmentSalesHistory();return;}
   const isAdmin=getCurrentUser()?.role==='Admin';
   list.innerHTML=rows.map(s=>{
     const statusText=s.voided?'VOIDED':'COMPLETED';
@@ -2481,7 +2481,7 @@ function renderSalesHistory(){
     const voidBtn=isAdmin&&!s.voided?`<button class="btn voidBtn" onclick="voidSale('${String(s.id).replace(/'/g,"\\'")}');event.stopPropagation()">🗑️ Void Sale</button>`:'';
     return `<div class="historyCard"><div class="historyTop"><div><div class="historyTitle">Receipt / Transaction #${esc(String(s.id))}</div><div class="historyMeta">${esc(new Date(s.date).toLocaleString('en-PH'))} • ${esc(customer)}${customerPhone} • ${esc(s.payment||'-')}${s.payment==='Card'&&s.cardType?` • ${esc(s.cardType)}`:''}${bank}${ref}</div></div><span class="historyStatus ${s.voided?'voided':'completed'}">${statusText}</span></div><div class="historyItems">${itemHtml}</div><div class="historyActions"><button class="btn greenbtn" onclick="showReceiptById('${String(s.id).replace(/'/g,"\\'")}')">🧾 View Receipt</button>${voidBtn}</div></div>`;
   }).join('');
-  renderInstallmentSalesHistory();
+  if(typeof renderInstallmentSalesHistory==='function')renderInstallmentSalesHistory();
 }
 function renderAll(){
   step89UpdatePaymentSummary();let today=new Date().toDateString(),ts=sales.filter(s=>!s.voided&&new Date(s.date).toDateString()===today),ss=ts.reduce((a,s)=>a+s.total,0),it=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+i.qty,0),0),pr=ts.reduce((a,s)=>a+s.items.reduce((x,i)=>x+(i.price-i.cost)*i.qty,0)-s.discount,0);let iv=0,stockUnits=0;products.filter(p=>!isArchivedModel(p)).forEach(p=>{let total=Math.max(0,Number(p.stock)||0),im=getProductUnitIMEIs(p);stockUnits+=total;for(let idx=0;idx<total;idx++){let imei=im[idx]||'',c=unitCostPrice(p,imei);iv+=Number(c)||0;}});$('dSales').textContent=money(ss);$('dProfit').textContent=money(pr);$('dItems').textContent=it;$('dInv').textContent=money(iv);$('dTx').textContent=ts.length+' transaction(s)';$('dStock').textContent=stockUnits+' units';renderDashboardSoldUnits();updateLowStockDashboard();setTimeout(step89UpdatePaymentSummary,0);renderDashboardProducts();renderSaleProducts();renderMaster();renderInventory();renderSalesHistory();renderReports();renderCart();renderStockHistory();renderCustomers();renderCustomerOptions(true);renderInstallmentOptions();renderInstallments();['instCashPrice','instDown','instMonths'].forEach(id=>{if($(id))$(id).addEventListener('input',updateInstallmentPreview)})}
