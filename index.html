@@ -1560,6 +1560,7 @@ async function saveInventoryUnitEdit(){
         cost_price:cost,selling_price:price,unit_type:desiredType,status:'IN_STOCK',branch_id:branch.id
       }).eq('id',rr.data.id).eq('branch_id',branch.id);
       if(ur.error)throw ur.error;
+      updateLocalStockInUnitPrices(newImei,price,cost);
     }
     if(typeof window.__refreshCloudSharedNow==='function'){
       await window.__refreshCloudSharedNow();
@@ -2058,6 +2059,21 @@ function resolveUnitPrices(p, imei){
   const price=productSellingPrice(p) || getUnitPriceFromHistory(imei,'price');
   const cost=productCostPrice(p) || getUnitPriceFromHistory(imei,'cost');
   return {price:Number(price)||0,cost:Number(cost)||0};
+}
+function updateLocalStockInUnitPrices(imei, price, cost){
+  const target=normalizeUnitCode(imei); if(!target)return false;
+  let list=[]; try{list=JSON.parse(localStorage.getItem('4j_stockins')||'[]')}catch(e){list=[]}
+  let changed=false;
+  for(const r of list){
+    if(!r || !Array.isArray(r.imeis))continue;
+    if(r.imeis.some(x=>normalizeUnitCode(x)===target)){
+      if(Number(price)>0){r.price=Number(price);r.sellingPrice=Number(price);}
+      if(Number(cost)>0){r.cost=Number(cost);r.costPrice=Number(cost);}
+      changed=true;
+    }
+  }
+  if(changed)localStorage.setItem('4j_stockins',JSON.stringify(list));
+  return changed;
 }
 function unitSellingPrice(p, imei){
   const history=imei?getUnitPriceFromHistory(imei,'price'):0;
@@ -3861,6 +3877,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     ]);
     if(pr.error)throw pr.error;if(ur.error)throw ur.error;
     const cps=pr.data||[], units=ur.data||[];
+    // Keep local Stock In price history aligned with authoritative per-unit Cloud prices.
+    units.forEach(u=>{if(u.imei_serial)updateLocalStockInUnitPrices(u.imei_serial,u.selling_price,u.cost_price)});
     if(!cps.length && products.length){cloudStatus('Cloud inventory empty — local inventory retained',false);return false}
     const map=new Map();units.forEach(u=>{const k=String(u.product_id);if(!map.has(k))map.set(k,[]);map.get(k).push(u)});
     const out=cps.map(x=>{const us=map.get(String(x.id))||[],f=us[0]||{},ims=us.map(z=>String(z.imei_serial||'').trim()).filter(Boolean);const cloudUnitType=String(f.unit_type||'').trim();const unitType=cloudUnitType==='Second Hand'?'Second Hand':(cloudUnitType==='Brand New'?'Brand New':'Brand New');return {id:String(x.id),sku:String(x.sku||x.barcode||''),barcode:String(x.barcode||x.sku||''),brand:String(x.brand||''),model:String(x.model||''),variant:String(f.variant||[x.storage,x.ram,x.color].filter(Boolean).join(' / ')),imei:ims[0]||'',imeis:ims,category:String(x.category||'Cellphone'),supplier:String(x.supplier||''),cost:n(f.cost_price??x.cost_price),price:n(f.selling_price??x.selling_price),stock:us.length,min:n(x.low_stock_alert)||1,lowStock:1,unitType,condition:unitType,serialTracked:Boolean(x.imei_tracking||ims.length||/cellphone|tablet/i.test(String(x.category||''))),archivedModel:Boolean(x.archived),restoredFromCloud:true}}).filter(x=>x.brand&&x.model&&!x.archivedModel);
